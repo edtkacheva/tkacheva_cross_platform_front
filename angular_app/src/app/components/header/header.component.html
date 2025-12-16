@@ -1,0 +1,43 @@
+<header class="header">
+  <div class="header-container">
+    <div class="logo" (click)="navigateTo('/')">
+      <h1>RSS Reader</h1>
+    </div>
+
+    <nav class="nav">
+      <ul class="nav-list">
+        <li *ngIf="isLoggedIn" class="nav-item">
+          <button class="nav-link" (click)="navigateTo('/')">
+            Home
+          </button>
+        </li>
+        
+        <li *ngIf="isAdmin" class="nav-item">
+          <button class="nav-link" (click)="navigateTo('/admin')">
+            Admin Panel
+          </button>
+        </li>
+
+        <li *ngIf="isLoggedIn" class="nav-item username">
+          <span>Welcome, {{ username }}</span>
+        </li>
+
+        <li class="nav-item">
+          <button 
+            *ngIf="!isLoggedIn" 
+            class="btn btn-outline"
+            (click)="navigateTo('/login')">
+            Login
+          </button>
+          
+          <button 
+            *ngIf="isLoggedIn" 
+            class="btn btn-outline"
+            (click)="logout()">
+            Logout
+          </button>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</header>
