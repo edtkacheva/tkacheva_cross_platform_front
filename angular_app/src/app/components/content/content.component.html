@@ -2,134 +2,155 @@
   <!-- Панель управления -->
   <div class="control-panel">
     <div class="tabs">
-      <button 
-        class="tab-btn" 
+      <button
+        class="tab-btn"
         [class.active]="activeTab === 'all'"
         (click)="setActiveTab('all')">
         All Articles
       </button>
-      
-      <button 
-        class="tab-btn" 
-        [class.active]="activeTab === 'subscriptions'"
-        (click)="setActiveTab('subscriptions')"
-        *ngIf="authService.isLoggedIn()">
-        My Subscriptions
-      </button>
-      
-      <button 
-        class="tab-btn" 
+
+      @if (authService.isLoggedIn()) {
+        <button
+          class="tab-btn"
+          [class.active]="activeTab === 'subscriptions'"
+          (click)="setActiveTab('subscriptions')"
+          >
+          My Subscriptions
+        </button>
+      }
+
+      <button
+        class="tab-btn"
         [class.active]="activeTab === 'search'"
         (click)="activeTab = 'search'">
         Search
       </button>
 
-      <button 
+      <button
         class="btn btn-outline refresh-btn"
         (click)="refreshData()"
         [disabled]="isLoading">
         {{isLoading ? 'Loading...' : 'Refresh'}}
       </button>
     </div>
-    
+
     <!-- Форма поиска -->
-    <div class="search-box" *ngIf="activeTab === 'search'">
-      <input 
-        type="text" 
-        [value]="searchQuery" 
-        (input)="onSearchInput($event)"
-        placeholder="Search in descriptions..."
-        (keyup.enter)="searchArticles()"
-        class="search-input">
-      <button 
-        class="btn btn-primary" 
-        (click)="searchArticles()" 
-        [disabled]="isLoading || !searchQuery.trim()">
-        {{isLoading ? 'Searching...' : 'Search'}}
-      </button>
-      <button class="btn btn-outline" (click)="clearSearch()">Clear</button>
+    @if (activeTab === 'search') {
+      <div class="search-box">
+        <input
+          type="text"
+          [value]="searchQuery"
+          (input)="onSearchInput($event)"
+          placeholder="Search in descriptions..."
+          (keyup.enter)="searchArticles()"
+          class="search-input">
+          <button
+            class="btn btn-primary"
+            (click)="searchArticles()"
+            [disabled]="isLoading || !searchQuery.trim()">
+            {{isLoading ? 'Searching...' : 'Search'}}
+          </button>
+          <button class="btn btn-outline" (click)="clearSearch()">Clear</button>
+        </div>
+      }
     </div>
-  </div>
-  
-  <!-- Сообщения об ошибках -->
-  <div *ngIf="errorMessage" class="alert alert-error">
-    {{ errorMessage }}
-    <button class="close-btn" (click)="errorMessage = ''">×</button>
-  </div>
-  
-  <!-- Индикатор загрузки -->
-  <div *ngIf="isLoading" class="loading">
-    <div class="spinner"></div>
-    <p>Loading data...</p>
-  </div>
-  
-  <!-- Каналы для подписки -->
-  <div class="channels-section" *ngIf="!isLoading && authService.isLoggedIn() && activeTab === 'all'">
-    <h3>Available Channels</h3>
-    <div class="channels-list">
-      <div *ngFor="let channel of getAvailableChannels()" class="channel-item">
-        <span class="channel-name" (click)="onChannelClick(channel.name)">
-          {{channel.name}}
-        </span>
-        <span class="channel-info">{{channel.articles?.length || 0}} articles</span>
-        <button 
-          class="btn-subscribe"
-          (click)="subscribeToChannel(channel.name)">
-          Subscribe
-        </button>
+
+    <!-- Сообщения об ошибках -->
+    @if (errorMessage) {
+      <div class="alert alert-error">
+        {{ errorMessage }}
+        <button class="close-btn" (click)="errorMessage = ''">×</button>
       </div>
-      <div *ngIf="getAvailableChannels().length === 0" class="no-channels">
-        You are subscribed to all available channels
+    }
+
+    <!-- Индикатор загрузки -->
+    @if (isLoading) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading data...</p>
       </div>
-    </div>
+    }
+
+    <!-- Каналы для подписки -->
+    @if (!isLoading && authService.isLoggedIn() && activeTab === 'all') {
+      <div class="channels-section">
+        <h3>Available Channels</h3>
+        <div class="channels-list">
+          @for (channel of getAvailableChannels(); track channel) {
+            <div class="channel-item">
+              <span class="channel-name" (click)="onChannelClick(channel.name)">
+                {{channel.name}}
+              </span>
+              <span class="channel-info">{{channel.articles?.length || 0}} articles</span>
+              <button
+                class="btn-subscribe"
+                (click)="subscribeToChannel(channel.name)">
+                Subscribe
+              </button>
+            </div>
+          }
+          @if (getAvailableChannels().length === 0) {
+            <div class="no-channels">
+              You are subscribed to all available channels
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Статьи -->
+    @if (!isLoading && getFilteredArticles().length > 0) {
+      <div class="articles-grid">
+        @for (article of getFilteredArticles(); track article) {
+          <div class="article-card">
+            <div class="article-header">
+              <h3 class="article-title">
+                <a [href]="article.url" target="_blank" rel="noopener noreferrer">
+                  {{ article.title }}
+                </a>
+              </h3>
+              <span class="article-date">{{ formatDate(article.publishedAt) }}</span>
+            </div>
+            <div class="article-channel">
+              <span
+                class="channel-badge"
+                [class.subscribed]="isArticleFromSubscribedChannel(article)"
+                (click)="onChannelClick(getChannelName(article))">
+                {{ getChannelName(article) }}
+              </span>
+              @if (authService.isLoggedIn() && !isSubscribed(getChannelName(article))) {
+                <button
+                  class="btn-subscribe"
+                  (click)="subscribeToChannel(getChannelName(article))">
+                  Subscribe
+                </button>
+              }
+              @if (authService.isLoggedIn() && isSubscribed(getChannelName(article))) {
+                <button
+                  class="btn-unsubscribe"
+                  (click)="unsubscribeFromChannel(getChannelName(article))">
+                  Unsubscribe
+                </button>
+              }
+            </div>
+            @if (article.description) {
+              <div class="article-description">
+                {{ article.description }}
+              </div>
+            }
+            <div class="article-actions">
+              <a [href]="article.url" target="_blank" class="btn btn-primary">Read Article</a>
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    <!-- Нет статей -->
+    @if (!isLoading && getFilteredArticles().length === 0) {
+      <div class="no-articles">
+        <p>No articles found.</p>
+        <button class="btn btn-outline" (click)="refreshData()">Refresh</button>
+      </div>
+    }
   </div>
-  
-  <!-- Статьи -->
-  <div class="articles-grid" *ngIf="!isLoading && getFilteredArticles().length > 0">
-    <div *ngFor="let article of getFilteredArticles()" class="article-card">
-      <div class="article-header">
-        <h3 class="article-title">
-          <a [href]="article.url" target="_blank" rel="noopener noreferrer">
-            {{ article.title }}
-          </a>
-        </h3>
-        <span class="article-date">{{ formatDate(article.publishedAt) }}</span>
-      </div>
-      
-      <div class="article-channel">
-        <span 
-          class="channel-badge" 
-          [class.subscribed]="isArticleFromSubscribedChannel(article)"
-          (click)="onChannelClick(getChannelName(article))">
-          {{ getChannelName(article) }}
-        </span>
-        <button 
-          *ngIf="authService.isLoggedIn() && !isSubscribed(getChannelName(article))"
-          class="btn-subscribe"
-          (click)="subscribeToChannel(getChannelName(article))">
-          Subscribe
-        </button>
-        <button 
-          *ngIf="authService.isLoggedIn() && isSubscribed(getChannelName(article))"
-          class="btn-unsubscribe"
-          (click)="unsubscribeFromChannel(getChannelName(article))">
-          Unsubscribe
-        </button>
-      </div>
-      
-      <div class="article-description" *ngIf="article.description">
-        {{ article.description }}
-      </div>
-      
-      <div class="article-actions">
-        <a [href]="article.url" target="_blank" class="btn btn-primary">Read Article</a>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Нет статей -->
-  <div *ngIf="!isLoading && getFilteredArticles().length === 0" class="no-articles">
-    <p>No articles found.</p>
-    <button class="btn btn-outline" (click)="refreshData()">Refresh</button>
-  </div>
-</div>
