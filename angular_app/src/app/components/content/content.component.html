@@ -1,156 +1,132 @@
 <div class="content-container">
-  <!-- Панель управления -->
-  <div class="control-panel">
-    <div class="tabs">
-      <button
-        class="tab-btn"
-        [class.active]="activeTab === 'all'"
-        (click)="setActiveTab('all')">
-        All Articles
-      </button>
-
-      @if (authService.isLoggedIn()) {
-        <button
-          class="tab-btn"
-          [class.active]="activeTab === 'subscriptions'"
-          (click)="setActiveTab('subscriptions')"
-          >
-          My Subscriptions
-        </button>
+  <!-- Заголовок -->
+  <div class="page-header">
+    <div class="header-left">
+      <h2>{{ isAdmin ? 'Все статьи' : 'Статьи из моих подписок' }}</h2>
+      @if (!isAdmin && userSubscriptions.length > 0) {
+        <p class="subtitle">
+          Вы подписаны на {{ userSubscriptions.length }} каналов
+        </p>
       }
-
-      <button
-        class="tab-btn"
-        [class.active]="activeTab === 'search'"
-        (click)="activeTab = 'search'">
-        Search
-      </button>
-
-      <button
-        class="btn btn-outline refresh-btn"
-        (click)="refreshData()"
-        [disabled]="isLoading">
-        {{isLoading ? 'Loading...' : 'Refresh'}}
-      </button>
     </div>
-
-    <!-- Форма поиска -->
-    @if (activeTab === 'search') {
+    
+    <!-- Поиск и управление -->
+    <div class="header-right">
       <div class="search-box">
         <input
           type="text"
           [value]="searchQuery"
           (input)="onSearchInput($event)"
-          placeholder="Search in descriptions..."
+          placeholder="Поиск статей..."
           (keyup.enter)="searchArticles()"
           class="search-input">
-          <button
-            class="btn btn-primary"
-            (click)="searchArticles()"
-            [disabled]="isLoading || !searchQuery.trim()">
-            {{isLoading ? 'Searching...' : 'Search'}}
+        <button
+          class="btn btn-outline"
+          (click)="searchArticles()"
+          [disabled]="isLoading || !searchQuery.trim()">
+          🔍
+        </button>
+        @if (searchQuery) {
+          <button class="btn btn-text" (click)="clearSearch()">
+            ×
           </button>
-          <button class="btn btn-outline" (click)="clearSearch()">Clear</button>
+        }
+      </div>
+      <button
+        class="btn btn-outline"
+        (click)="refreshData()"
+        [disabled]="isLoading"
+        title="Обновить">
+        {{isLoading ? '⏳' : '🔄'}}
+      </button>
+    </div>
+  </div>
+
+  <!-- Сообщения -->
+  @if (errorMessage) {
+    <div class="alert alert-error">
+      <span>{{ errorMessage }}</span>
+      <button class="close-btn" (click)="errorMessage = ''">×</button>
+    </div>
+  }
+
+  @if (successMessage) {
+    <div class="alert alert-success">
+      <span>{{ successMessage }}</span>
+      <button class="close-btn" (click)="successMessage = ''">×</button>
+    </div>
+  }
+
+  <!-- Индикатор загрузки -->
+  @if (isLoading) {
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка статей...</p>
+    </div>
+  }
+
+  <!-- Статьи -->
+  @if (!isLoading && getFilteredArticles().length > 0) {
+    <div class="articles-info">
+      <p>Найдено статей: {{ getFilteredArticles().length }}</p>
+    </div>
+    
+    <div class="articles-grid">
+      @for (article of getFilteredArticles(); track article) {
+        <div class="article-card">
+          <div class="article-header">
+            <div class="article-meta">
+              <span class="article-date">{{ formatDate(article.publishedAt) }}</span>
+              <span class="article-channel">
+                📍 {{ getChannelName(article) }}
+              </span>
+            </div>
+            <h3 class="article-title">
+              <a [href]="article.url" target="_blank" rel="noopener noreferrer">
+                {{ article.title }}
+              </a>
+            </h3>
+          </div>
+          
+          @if (article.description) {
+            <div class="article-description">
+              {{ article.description }}
+            </div>
+          }
+          
+          <div class="article-footer">
+            <a [href]="article.url" target="_blank" class="btn btn-primary">
+              Читать статью →
+            </a>
+          </div>
         </div>
       }
     </div>
+  }
 
-    <!-- Сообщения об ошибках -->
-    @if (errorMessage) {
-      <div class="alert alert-error">
-        {{ errorMessage }}
-        <button class="close-btn" (click)="errorMessage = ''">×</button>
-      </div>
-    }
-
-    <!-- Индикатор загрузки -->
-    @if (isLoading) {
-      <div class="loading">
-        <div class="spinner"></div>
-        <p>Loading data...</p>
-      </div>
-    }
-
-    <!-- Каналы для подписки -->
-    @if (!isLoading && authService.isLoggedIn() && activeTab === 'all') {
-      <div class="channels-section">
-        <h3>Available Channels</h3>
-        <div class="channels-list">
-          @for (channel of getAvailableChannels(); track channel) {
-            <div class="channel-item">
-              <span class="channel-name" (click)="onChannelClick(channel.name)">
-                {{channel.name}}
-              </span>
-              <span class="channel-info">{{channel.articles?.length || 0}} articles</span>
-              <button
-                class="btn-subscribe"
-                (click)="subscribeToChannel(channel.name)">
-                Subscribe
-              </button>
-            </div>
-          }
-          @if (getAvailableChannels().length === 0) {
-            <div class="no-channels">
-              You are subscribed to all available channels
-            </div>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- Статьи -->
-    @if (!isLoading && getFilteredArticles().length > 0) {
-      <div class="articles-grid">
-        @for (article of getFilteredArticles(); track article) {
-          <div class="article-card">
-            <div class="article-header">
-              <h3 class="article-title">
-                <a [href]="article.url" target="_blank" rel="noopener noreferrer">
-                  {{ article.title }}
-                </a>
-              </h3>
-              <span class="article-date">{{ formatDate(article.publishedAt) }}</span>
-            </div>
-            <div class="article-channel">
-              <span
-                class="channel-badge"
-                [class.subscribed]="isArticleFromSubscribedChannel(article)"
-                (click)="onChannelClick(getChannelName(article))">
-                {{ getChannelName(article) }}
-              </span>
-              @if (authService.isLoggedIn() && !isSubscribed(getChannelName(article))) {
-                <button
-                  class="btn-subscribe"
-                  (click)="subscribeToChannel(getChannelName(article))">
-                  Subscribe
-                </button>
-              }
-              @if (authService.isLoggedIn() && isSubscribed(getChannelName(article))) {
-                <button
-                  class="btn-unsubscribe"
-                  (click)="unsubscribeFromChannel(getChannelName(article))">
-                  Unsubscribe
-                </button>
-              }
-            </div>
-            @if (article.description) {
-              <div class="article-description">
-                {{ article.description }}
-              </div>
-            }
-            <div class="article-actions">
-              <a [href]="article.url" target="_blank" class="btn btn-primary">Read Article</a>
-            </div>
-          </div>
+  <!-- Нет статей -->
+  @if (!isLoading && getFilteredArticles().length === 0) {
+    <div class="no-articles">
+      <div class="empty-state">
+        <div class="empty-icon">📄</div>
+        <h3>{{ isAdmin ? 'Статьи не найдены' : 'Нет статей из ваших подписок' }}</h3>
+        <p>
+          {{ isAdmin 
+            ? 'Добавьте RSS-каналы в разделе "Каналы RSS"' 
+            : 'Подпишитесь на каналы в разделе "Каналы"' 
+          }}
+        </p>
+        @if (!isAdmin) {
+          <a routerLink="/channels" class="btn btn-primary">
+            Перейти к каналам
+          </a>
+        }
+        @if (isAdmin) {
+          <a routerLink="/admin/channels" class="btn btn-primary">
+            Управление каналами
+          </a>
         }
       </div>
-    }
-
-    <!-- Нет статей -->
-    @if (!isLoading && getFilteredArticles().length === 0) {
-      <div class="no-articles">
-        <p>No articles found.</p>
-        <button class="btn btn-outline" (click)="refreshData()">Refresh</button>
-      </div>
-    }
-  </div>
+    </div>
+  }
+</div>

@@ -1,4 +1,63 @@
-<app-header></app-header>
+<header class="header">
+  <div class="header-container">
+    <div class="logo" routerLink="/content">
+      <h1>RSS Reader</h1>
+    </div>
+    
+    <nav>
+      <ul class="nav-list">
+        @if (isLoggedIn) {
+          <li class="nav-item username">
+            <span>Добро пожаловать, {{ getUsername() }}</span>
+          </li>
+          
+          @if (isAdmin) {
+            <!-- Админское меню -->
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/content" routerLinkActive="active">
+                Все статьи
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/admin/channels" routerLinkActive="active">
+                Каналы RSS
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/admin/users" routerLinkActive="active">
+                Пользователи
+              </a>
+            </li>
+          } @else {
+            <!-- Пользовательское меню -->
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/content" routerLinkActive="active">
+                Мои подписки
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" routerLink="/channels" routerLinkActive="active">
+                Каналы
+              </a>
+            </li>
+          }
+          
+          <li class="nav-item">
+            <button class="nav-link" (click)="logout()">Выйти</button>
+          </li>
+        } @else {
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/login" routerLinkActive="active">Войти</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" routerLink="/register" routerLinkActive="active">Регистрация</a>
+          </li>
+        }
+      </ul>
+    </nav>
+  </div>
+</header>
+
 <main class="main-content">
   <router-outlet></router-outlet>
 </main>

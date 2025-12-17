@@ -48,7 +48,7 @@ export class AuthFormComponent implements OnInit {
 
     if (this.isRegisterMode && 
         this.authForm.value.password !== this.authForm.value.confirmPassword) {
-      this.errorMessage = 'Passwords do not match';
+      this.errorMessage = 'Пароли не совпадают';
       return;
     }
 
@@ -62,7 +62,7 @@ export class AuthFormComponent implements OnInit {
         .then(success => {
           this.isLoading = false;
           if (!success) {
-            this.errorMessage = 'Registration failed. Username might already exist.';
+            this.errorMessage = 'Ошибка регистрации. Возможно, пользователь уже существует';
           }
         });
     } else {
@@ -70,7 +70,7 @@ export class AuthFormComponent implements OnInit {
         .then(success => {
           this.isLoading = false;
           if (!success) {
-            this.errorMessage = 'Invalid username or password';
+            this.errorMessage = 'Неверный логин или пароль';
           }
         });
     }

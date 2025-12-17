@@ -1,7 +1,7 @@
 <header class="header">
   <div class="header-container">
     <div class="logo" (click)="navigateTo('/')">
-      <h1>RSS Reader</h1>
+      <h1>RSS агрегатор</h1>
     </div>
 
     <nav class="nav">
@@ -9,7 +9,7 @@
         @if (isLoggedIn) {
           <li class="nav-item">
             <button class="nav-link" (click)="navigateTo('/')">
-              Home
+              Домашняя страница
             </button>
           </li>
         }
@@ -17,14 +17,14 @@
         @if (isAdmin) {
           <li class="nav-item">
             <button class="nav-link" (click)="navigateTo('/admin')">
-              Admin Panel
+              Панель администратора
             </button>
           </li>
         }
 
         @if (isLoggedIn) {
           <li class="nav-item username">
-            <span>Welcome, {{ username }}</span>
+            <span>Добро пожаловать, {{ username }}</span>
           </li>
         }
 
@@ -33,7 +33,7 @@
             <button
               class="btn btn-outline"
               (click)="navigateTo('/login')">
-              Login
+              Войти
             </button>
           }
 
@@ -41,7 +41,7 @@
             <button
               class="btn btn-outline"
               (click)="logout()">
-              Logout
+              Выйти
             </button>
           }
         </li>

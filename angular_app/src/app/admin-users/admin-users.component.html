@@ -1,0 +1,79 @@
+<div class="admin-users-container">
+    <div class="page-header">
+      <h2>Управление пользователями</h2>
+    </div>
+  
+    <!-- Сообщения -->
+    @if (errorMessage) {
+      <div class="alert alert-error">
+        {{ errorMessage }}
+        <button class="close-btn" (click)="errorMessage = ''">×</button>
+      </div>
+    }
+  
+    @if (successMessage) {
+      <div class="alert alert-success">
+        {{ successMessage }}
+        <button class="close-btn" (click)="successMessage = ''">×</button>
+      </div>
+    }
+  
+    <!-- Индикатор загрузки -->
+    @if (isLoading) {
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Загрузка пользователей...</p>
+      </div>
+    }
+  
+    <!-- Таблица пользователей -->
+    @if (!isLoading) {
+      <div class="users-section">
+        <h3>Все пользователи ({{users.length}})</h3>
+        
+        @if (users.length > 0) {
+          <div class="table-container">
+            <table class="users-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Имя пользователя</th>
+                  <th>Роль</th>
+                  <th>Подписок</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (user of users; track user) {
+                  <tr>
+                    <td class="user-id">{{ user.id || '—' }}</td>
+                    <td class="user-name">{{ user.userName }}</td>
+                    <td class="user-role">
+                      <span [class.admin]="user.isAdmin" class="role-badge">
+                        {{ user.isAdmin ? 'Администратор' : 'Пользователь' }}
+                      </span>
+                    </td>
+                    <td class="user-subscriptions">
+                      {{ user.subscribedChannels?.length || 0 }}
+                    </td>
+                    <td class="user-actions">
+                      <button
+                        class="btn btn-danger btn-sm"
+                        (click)="deleteUser(user.userName)"
+                        [disabled]="user.isAdmin">
+                        Удалить
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else {
+          <div class="no-data">
+            <p>Пользователи не найдены</p>
+          </div>
+        }
+      </div>
+    }
+  </div>

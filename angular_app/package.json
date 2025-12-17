@@ -12,7 +12,6 @@
   "dependencies": {
     "@angular/animations": "^21.0.5",
     "@angular/common": "^21.0.5",
-    "@angular/compiler": "^21.0.5",
     "@angular/core": "^21.0.5",
     "@angular/forms": "^21.0.5",
     "@angular/platform-browser": "^21.0.5",
@@ -26,8 +25,9 @@
     "@angular-devkit/build-angular": "^21.0.3",
     "@angular/cli": "^21.0.3",
     "@angular/compiler-cli": "^21.0.5",
+    "@angular/language-service": "^21.0.5",
     "@types/jasmine": "^5.1.13",
     "@types/jest": "^30.0.0",
-    "typescript": "~5.2.0"
+    "typescript": "~5.9.0"
   }
 }

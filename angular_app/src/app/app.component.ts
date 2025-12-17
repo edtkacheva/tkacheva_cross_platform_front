@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import { AuthService } from './services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-root',
@@ -7,5 +9,25 @@ import { Component } from '@angular/core';
   standalone: false
 })
 export class AppComponent {
-  title = 'RSS Reader';
+  constructor(
+    public authService: AuthService,
+    private router: Router
+  ) {}
+
+  get isLoggedIn(): boolean {
+    return this.authService.isLoggedIn();
+  }
+
+  get isAdmin(): boolean {
+    return this.authService.isUserAdmin();
+  }
+
+  getUsername(): string {
+    return this.authService.getUsername() || '';
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
+  }
 }
