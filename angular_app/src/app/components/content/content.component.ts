@@ -17,6 +17,7 @@ export class ContentComponent implements OnInit {
   successMessage = '';
   searchQuery = '';
   isAdmin = false;
+  isSearchMode = false;
 
   constructor(
     private apiService: ApiService,
@@ -24,6 +25,9 @@ export class ContentComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    next: (channels) => {
+      this.channelNameById = new Map(channels.map((c: any) => [c.id, c.name]));
+    }
     this.isAdmin = this.authService.isUserAdmin();
     this.loadArticles();
     
@@ -62,33 +66,46 @@ export class ContentComponent implements OnInit {
   }
 
   getFilteredArticles() {
+    if (this.isSearchMode) {
+      return this.articles;
+    }
+  
+    // обычный режим: фильтр по подпискам
     if (!this.isAdmin && this.userSubscriptions.length > 0) {
       const subscribedChannelNames = this.userSubscriptions.map(c => c.name);
-      return this.articles.filter(article => 
-        article.rSSChannel && subscribedChannelNames.includes(article.rSSChannel.name)
+      return this.articles.filter(article =>
+        article.rssChannel &&
+        subscribedChannelNames.includes(article.rssChannel.name)
       );
     }
+  
     return this.articles;
   }
+  
 
   searchArticles() {
-    if (!this.searchQuery.trim()) {
-      this.errorMessage = 'Пожалуйста, введите текст для поиска';
+    const query = this.searchQuery.trim();
+  
+    if (!query) {
+      this.isSearchMode = false;
+      this.refreshData();
       return;
     }
-
+  
+    this.isSearchMode = true;
     this.isLoading = true;
-    this.apiService.searchArticlesByDescription(this.searchQuery).subscribe({
-      next: (articles) => {
+  
+    this.apiService.searchArticlesByDescription(query).subscribe({
+      next: articles => {
         this.articles = articles;
         this.isLoading = false;
       },
-      error: (error) => {
-        this.errorMessage = 'Не удалось найти статьи';
+      error: () => {
+        this.errorMessage = 'Ошибка поиска статей';
         this.isLoading = false;
       }
     });
-  }
+  }  
 
   clearSearch() {
     this.searchQuery = '';
@@ -121,7 +138,16 @@ export class ContentComponent implements OnInit {
     }
   }
 
-  getChannelName(article: Article): string {
-    return article.rSSChannel?.name || 'Неизвестный канал';
+  getChannelName(article: any): string {
+    const fromObj = article?.rssChannel?.name;
+    if (fromObj) return fromObj;
+  
+    const id = article?.rssChannelId;
+    const fromMap = this.channelNameById?.get(id);
+    if (fromMap) return fromMap;
+  
+    return 'Канал не найден';
   }
+
+  channelNameById = new Map<number, string>();
 }

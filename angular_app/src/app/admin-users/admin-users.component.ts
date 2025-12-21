@@ -1,11 +1,13 @@
 import { Component, OnInit } from '@angular/core';
 import { ApiService } from '../services/api.service';
 import { User } from '../models/types';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-admin-users',
   templateUrl: './admin-users.component.html',
-  styleUrls: ['./admin-users.component.css']
+  styleUrls: ['./admin-users.component.css'],
+  standalone: false
 })
 export class AdminUsersComponent implements OnInit {
   users: User[] = [];
@@ -21,34 +23,32 @@ export class AdminUsersComponent implements OnInit {
 
   loadUsers() {
     this.isLoading = true;
+  
     this.apiService.getAllUsers().subscribe({
       next: (users) => {
-        this.users = users || [];
+        this.users = users.filter(u => !u.isAdmin);
         this.isLoading = false;
       },
-      error: (error) => {
+      error: () => {
         this.errorMessage = 'Не удалось загрузить пользователей';
         this.isLoading = false;
       }
     });
   }
+  
 
   deleteUser(username: string) {
-    if (!confirm(`Удалить пользователя "${username}"?`)) {
-      return;
-    }
-
-    // Нужно добавить метод deleteUser в ApiService
-    // this.apiService.deleteUser(username).subscribe({
-    //   next: () => {
-    //     this.successMessage = `Пользователь "${username}" удален`;
-    //     this.loadUsers();
-    //   },
-    //   error: (error) => {
-    //     this.errorMessage = 'Не удалось удалить пользователя';
-    //   }
-    // });
-    
-    this.errorMessage = 'Функция удаления пользователей пока не реализована';
+    if (!confirm(`Удалить пользователя "${username}"?`)) return;
+  
+    this.apiService.deleteUser(username).subscribe({
+      next: () => {
+        this.successMessage = 'Пользователь удалён';
+        this.loadUsers();
+      },
+      error: () => {
+        this.loadUsers();
+      }
+    });
   }
+  
 }

@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { AuthService } from './services/auth.service';
-import { Router } from '@angular/router';
+import { Router, NavigationEnd } from '@angular/router';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-root',
@@ -8,11 +9,34 @@ import { Router } from '@angular/router';
   styleUrls: ['./app.component.css'],
   standalone: false
 })
-export class AppComponent {
+export class AppComponent implements OnInit, OnDestroy {
+  private routerSubscription: Subscription;
+  
   constructor(
     public authService: AuthService,
     private router: Router
   ) {}
+
+  ngOnInit(): void {
+    // Подписываемся на изменения маршрута для обновления статуса
+    this.routerSubscription = this.router.events.subscribe(event => {
+      if (event instanceof NavigationEnd) {
+        // Принудительно обновляем статус при смене маршрута
+        console.log('Route changed, auth status:', {
+          isLoggedIn: this.isLoggedIn,
+          isAdmin: this.isAdmin,
+          username: this.getUsername()
+        });
+      }
+    });
+  }
+
+  ngOnDestroy(): void {
+    // Отписываемся при уничтожении компонента
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
+  }
 
   get isLoggedIn(): boolean {
     return this.authService.isLoggedIn();

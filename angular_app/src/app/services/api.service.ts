@@ -61,7 +61,6 @@ export class ApiService {
     return this.http.post<RSSChannel>(`${this.apiUrl}/rss`, channel);
   }
 
-  // Articles
   getAllArticles(): Observable<Article[]> {
     return this.http.get<Article[]>(`${this.apiUrl}/articles`);
   }
@@ -75,7 +74,7 @@ export class ApiService {
   }
 
   searchArticlesByDescription(text: string): Observable<Article[]> {
-    return this.http.get<Article[]>(`${this.apiUrl}/articles/search?description=${encodeURIComponent(text)}`);
+    return this.http.get<Article[]>(`${this.apiUrl}/articles/search/description/${encodeURIComponent(text)}`);
   }
 
   deleteUser(username: string): Observable<any> {
@@ -85,4 +84,9 @@ export class ApiService {
   deleteChannel(name: string): Observable<any> {
     return this.http.delete(`${this.apiUrl}/rss/${name}`);
   }
+  
+  deleteArticle(title: string) {
+    return this.http.delete(`/api/articles/${title}`);
+  }
+  
 }

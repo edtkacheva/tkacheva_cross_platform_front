@@ -62,18 +62,6 @@ export class AuthService {
     this.router.navigate(['/login']);
   }
 
-  isLoggedIn(): boolean {
-    return this.hasToken();
-  }
-
-  isUserAdmin(): boolean {
-    return localStorage.getItem('isAdmin') === 'true';
-  }
-
-  getUsername(): string | null {
-    return localStorage.getItem('username');
-  }
-
   getAuthStatus() {
     return this.isAuthenticated.asObservable();
   }
@@ -98,4 +86,70 @@ export class AuthService {
       return {};
     }
   }
+
+getToken(): string | null {
+  return localStorage.getItem('token');
+}
+
+private decodeJwtPayload(token: string): any | null {
+  try {
+    const payloadPart = token.split('.')[1];
+    if (!payloadPart) return null;
+
+    // base64url -> base64
+    const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+
+    const json = decodeURIComponent(
+      atob(padded)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+getUsername(): string {
+  const token = this.getToken();
+  if (!token) return '';
+
+  const payload = this.decodeJwtPayload(token);
+  if (!payload) return '';
+
+  return (
+    payload['unique_name'] ||
+    payload['name'] ||
+    payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] ||
+    ''
+  );
+}
+
+isLoggedIn(): boolean {
+  return !!this.getToken();
+}
+
+isUserAdmin(): boolean {
+  const token = this.getToken();
+  if (!token) return false;
+
+  const payload = this.decodeJwtPayload(token);
+  if (!payload) return false;
+
+  // роль может быть строкой или массивом + разные ключи
+  const roleValue =
+    payload['role'] ||
+    payload['roles'] ||
+    payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'];
+
+  if (Array.isArray(roleValue)) {
+    return roleValue.includes('Admin');
+  }
+
+  return roleValue === 'Admin';
+}
+
 }

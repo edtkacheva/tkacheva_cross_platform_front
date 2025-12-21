@@ -10,17 +10,19 @@ export interface RSSChannel {
   id?: number;
   name: string;
   url: string;
+  description?: string | null;
   articles?: Article[];
 }
 
 export interface Article {
-  id?: number;
+  id: number;
   title: string;
   url: string;
-  description?: string;
-  content?: string;
-  publishedAt?: string;
-  rSSChannel?: RSSChannel;
+  publishedAt: string;
+  description?: string | null;
+
+  rssChannelId: number;
+  rssChannel?: RSSChannel | null;
 }
 
 export interface LoginResponse {

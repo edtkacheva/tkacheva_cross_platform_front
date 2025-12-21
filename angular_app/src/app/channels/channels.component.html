@@ -1,0 +1,132 @@
+<div class="channels-container">
+
+  <!-- Заголовок -->
+  <div class="page-header">
+    <h2>{{ isAdmin ? 'Управление каналами' : 'Каналы' }}</h2>
+
+    <button class="btn btn-primary" (click)="toggleAddForm()">
+      {{ showAddForm ? 'Отмена' : 'Добавить канал' }}
+    </button>
+  </div>
+
+  <!-- Форма добавления канала -->
+  @if (showAddForm) {
+    <div class="card">
+      <h3>Новый канал</h3>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Название</label>
+          <input
+            class="form-input"
+            type="text"
+            [(ngModel)]="newChannel.name">
+        </div>
+
+        <div class="form-group">
+          <label>RSS URL</label>
+          <input
+            class="form-input"
+            type="text"
+            [(ngModel)]="newChannel.url">
+        </div>
+      </div>
+
+      <button
+        class="btn btn-primary"
+        (click)="addNewChannel()"
+        [disabled]="!newChannel.name || !newChannel.url">
+        {{ isAdmin ? 'Добавить канал' : 'Добавить и подписаться' }}
+      </button>
+    </div>
+  }
+
+  <!-- Сообщения -->
+  @if (errorMessage) {
+    <div class="alert alert-error">
+      {{ errorMessage }}
+    </div>
+  }
+
+  @if (successMessage) {
+    <div class="alert alert-success">
+      {{ successMessage }}
+    </div>
+  }
+
+  <!-- Загрузка -->
+  @if (isLoading) {
+    <div class="loading">
+      <div class="spinner"></div>
+      <p>Загрузка...</p>
+    </div>
+  }
+
+  <!-- USER: Мои подписки -->
+  @if (!isLoading && !isAdmin) {
+    <div class="section">
+      <h3>Мои подписки</h3>
+
+      @if (userSubscriptions.length === 0) {
+        <p>Вы пока не подписаны ни на один канал</p>
+      }
+
+      <div class="channels-grid">
+        @for (channel of userSubscriptions; track channel) {
+          <div class="channel-card subscribed">
+            <h4>{{ channel.name }}</h4>
+
+            <button
+              class="btn btn-danger"
+              (click)="unsubscribeFromChannel(channel.name)">
+              Отписаться
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- USER: Доступные каналы -->
+  @if (!isLoading && !isAdmin) {
+    <div class="section">
+      <h3>Доступные каналы</h3>
+
+      <div class="channels-grid">
+        @for (channel of getAvailableChannels(); track channel) {
+          <div class="channel-card">
+            <h4>{{ channel.name }}</h4>
+
+            <button
+              class="btn btn-primary"
+              (click)="subscribeToChannel(channel.name)">
+              Подписаться
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  <!-- ADMIN: Все каналы -->
+  @if (!isLoading && isAdmin) {
+    <div class="section">
+      <h3>Все каналы</h3>
+
+      <div class="channels-grid">
+        @for (channel of allChannels; track channel) {
+          <div class="channel-card admin-view">
+            <h4>{{ channel.name }}</h4>
+
+            <button
+              class="btn btn-danger"
+              (click)="deleteChannel(channel.name)">
+              Удалить
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+</div>

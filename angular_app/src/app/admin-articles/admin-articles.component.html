@@ -1,0 +1,12 @@
+<h2>Все статьи</h2>
+
+<div *ngFor="let channel of groupedArticles | keyvalue">
+  <h3>{{ channel.key }}</h3>
+
+  <ul>
+    <li *ngFor="let article of channel.value">
+      {{ article.title }}
+      <button (click)="deleteArticle(article.title)">Удалить</button>
+    </li>
+  </ul>
+</div>

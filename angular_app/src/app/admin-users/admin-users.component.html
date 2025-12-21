@@ -38,7 +38,6 @@
                 <tr>
                   <th>ID</th>
                   <th>Имя пользователя</th>
-                  <th>Роль</th>
                   <th>Подписок</th>
                   <th>Действия</th>
                 </tr>
@@ -48,11 +47,6 @@
                   <tr>
                     <td class="user-id">{{ user.id || '—' }}</td>
                     <td class="user-name">{{ user.userName }}</td>
-                    <td class="user-role">
-                      <span [class.admin]="user.isAdmin" class="role-badge">
-                        {{ user.isAdmin ? 'Администратор' : 'Пользователь' }}
-                      </span>
-                    </td>
                     <td class="user-subscriptions">
                       {{ user.subscribedChannels?.length || 0 }}
                     </td>
