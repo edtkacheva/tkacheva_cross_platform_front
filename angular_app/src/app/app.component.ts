@@ -18,10 +18,8 @@ export class AppComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit(): void {
-    // Подписываемся на изменения маршрута для обновления статуса
     this.routerSubscription = this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
-        // Принудительно обновляем статус при смене маршрута
         console.log('Route changed, auth status:', {
           isLoggedIn: this.isLoggedIn,
           isAdmin: this.isAdmin,
@@ -32,7 +30,6 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Отписываемся при уничтожении компонента
     if (this.routerSubscription) {
       this.routerSubscription.unsubscribe();
     }

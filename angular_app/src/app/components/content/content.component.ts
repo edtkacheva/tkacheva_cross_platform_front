@@ -70,7 +70,6 @@ export class ContentComponent implements OnInit {
       return this.articles;
     }
   
-    // обычный режим: фильтр по подпискам
     if (!this.isAdmin && this.userSubscriptions.length > 0) {
       const subscribedChannelNames = this.userSubscriptions.map(c => c.name);
       return this.articles.filter(article =>

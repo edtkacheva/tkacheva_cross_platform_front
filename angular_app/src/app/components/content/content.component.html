@@ -1,7 +1,6 @@
 <div class="feed-page">
   <div class="feed-container">
 
-    <!-- ===== Заголовок страницы ===== -->
     <header class="feed-header">
       <h1 class="feed-title">
         {{ isAdmin ? 'Все статьи' : 'Лента новостей' }}
@@ -13,7 +12,6 @@
         </p>
       }
 
-      <!-- Поиск -->
       <div class="feed-search">
         <input
           type="text"
@@ -40,21 +38,18 @@
       </div>
     </header>
 
-    <!-- ===== Загрузка ===== -->
     @if (isLoading) {
       <div class="feed-loading">
         Загрузка новостей…
       </div>
     }
 
-    <!-- ===== ЛЕНТА НОВОСТЕЙ ===== -->
     @if (!isLoading && getFilteredArticles().length > 0) {
       <section class="news-feed">
         @for (article of getFilteredArticles(); track article.id) {
 
           <article class="news-post">
 
-            <!-- Верхняя мета-информация -->
             <div class="news-meta">
               <span class="news-date">
                 {{ formatDate(article.publishedAt) }}
@@ -67,19 +62,16 @@
               }
             </div>
 
-            <!-- Заголовок -->
             <h2 class="news-title">
               {{ article.title }}
             </h2>
 
-            <!-- Описание -->
             @if (article.description) {
               <p class="news-description">
                 {{ article.description }}
               </p>
             }
 
-            <!-- Низ карточки -->
             <div class="news-footer">
               <a
                 class="read-btn"
@@ -96,7 +88,6 @@
       </section>
     }
 
-    <!-- ===== Пустое состояние ===== -->
     @if (!isLoading && getFilteredArticles().length === 0) {
       <div class="feed-empty">
         <h2>

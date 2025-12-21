@@ -11,10 +11,9 @@ export class ApiService {
 
   constructor(private http: HttpClient) { }
 
-  // Auth
   login(username: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, {
-      username: username, // ⚠️ Обратите внимание: ваш бэкенд ожидает "username", а не "userName"
+      username: username,
       password: password
     });
   }
@@ -23,7 +22,6 @@ export class ApiService {
     return this.http.post<User>(`${this.apiUrl}/users`, user);
   }
 
-  // Users
   getCurrentUser(): Observable<User> {
     const username = localStorage.getItem('username');
     return this.http.get<User>(`${this.apiUrl}/users/${username}`);
@@ -33,14 +31,11 @@ export class ApiService {
     return this.http.get<User[]>(`${this.apiUrl}/users`);
   }
 
-  // Subscriptions - ИСПРАВЛЕНО!
   subscribe(username: string, channelName: string): Observable<any> {
-    // Простой POST запрос без тела, как в Postman
     return this.http.post(`${this.apiUrl}/users/${username}/subscribe/${channelName}`, {});
   }
 
   unsubscribe(username: string, channelName: string): Observable<any> {
-    // Простой POST запрос без тела, как в Postman
     return this.http.post(`${this.apiUrl}/users/${username}/unsubscribe/${channelName}`, {});
   }
 
@@ -48,7 +43,6 @@ export class ApiService {
     return this.http.get<RSSChannel[]>(`${this.apiUrl}/users/${username}/subscriptions`);
   }
   
-  // RSS Channels
   getAllChannels(): Observable<RSSChannel[]> {
     return this.http.get<RSSChannel[]>(`${this.apiUrl}/rss`);
   }

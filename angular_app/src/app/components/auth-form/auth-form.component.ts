@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { ApiService } from '../../services/api.service'; // или относительный путь
+import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-auth-form',

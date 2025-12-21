@@ -6,13 +6,13 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 
 import { AppComponent } from './app.component';
-import { HeaderComponent } from './components/header/header.component'; // Исправлено
-import { ContentComponent } from './components/content/content.component'; // Исправлено
+import { HeaderComponent } from './components/header/header.component';
+import { ContentComponent } from './components/content/content.component';
 import { AuthFormComponent } from './components/auth-form/auth-form.component';
 import { ChannelsComponent } from './channels/channels.component';
 
-import { AuthInterceptor } from './services/auth.interceptor'; // Исправлено
-import { ApiService } from './services/api.service'; // Исправлено
+import { AuthInterceptor } from './services/auth.interceptor';
+import { ApiService } from './services/api.service';
 import { AuthService } from './services/auth.service';
 import { AdminUsersComponent } from './admin-users/admin-users.component';
 import { AdminArticlesComponent } from './admin-articles/admin-articles.component';
@@ -51,7 +51,7 @@ const routes: Routes = [
     AuthService,
     {
       provide: HTTP_INTERCEPTORS,
-      useClass: AuthInterceptor, // Исправлено
+      useClass: AuthInterceptor,
       multi: true
     }
   ],

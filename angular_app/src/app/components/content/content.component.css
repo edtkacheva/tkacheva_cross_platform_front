@@ -1,10 +1,8 @@
-/* ===== ФОН СТРАНИЦЫ ===== */
 .feed-page {
   background-color: #f6f7f9;
   min-height: 100%;
 }
 
-/* ===== КОНТЕЙНЕР ===== */
 .feed-container {
   max-width: 760px;
   margin: 0 auto;
@@ -12,7 +10,6 @@
   font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* ===== HEADER ===== */
 .feed-header {
   text-align: center;
   margin-bottom: 48px;
@@ -29,7 +26,6 @@
   color: #6b7280;
 }
 
-/* ===== ПОИСК ===== */
 .feed-search {
   margin-top: 28px;
   display: flex;
@@ -51,14 +47,12 @@
   cursor: pointer;
 }
 
-/* ===== ЛЕНТА ===== */
 .news-feed {
   display: flex;
   flex-direction: column;
   gap: 32px;
 }
 
-/* ===== ОДНА СТАТЬЯ ===== */
 .news-post {
   background-color: #ffffff;
   border: 1px solid #e2e4e8;
@@ -76,15 +70,12 @@
   text-align: left;
 }
 
-
-/* ===== ДАТА ===== */
 .news-date {
   font-size: 13px;
   color: #9ca3af;
   margin-bottom: 6px;
 }
 
-/* ===== КАНАЛ ===== */
 .news-channel {
   font-size: 14px;
   font-weight: 600;
@@ -92,7 +83,6 @@
   margin-bottom: 18px;
 }
 
-/* ===== ЗАГОЛОВОК ===== */
 .news-title {
   font-size: 26px;
   line-height: 1.25;
@@ -100,7 +90,6 @@
   max-width: 640px;
 }
 
-/* ===== ОПИСАНИЕ ===== */
 .news-description {
   font-size: 16px;
   line-height: 1.7;
@@ -111,8 +100,6 @@
   text-align: justify;
 }
 
-
-/* ===== НИЗ ===== */
 .news-footer {
   margin-top: auto;
   padding-top: 20px;
@@ -120,7 +107,6 @@
   justify-content: center;
 }
 
-/* ===== ССЫЛКА ===== */
 .news-link {
   font-size: 14px;
   color: #6b7280;
@@ -137,7 +123,6 @@
   text-decoration: underline;
 }
 
-/* ===== КНОПКА ===== */
 .read-btn {
   display: inline-block;
   padding: 10px 22px;
@@ -153,7 +138,6 @@
   background-color: #1e4fd8;
 }
 
-/* ===== ПУСТО / ЗАГРУЗКА ===== */
 .feed-loading,
 .feed-empty {
   text-align: center;

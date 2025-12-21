@@ -1,6 +1,5 @@
 <div class="channels-container">
 
-  <!-- Заголовок -->
   <div class="page-header">
     <h2>{{ isAdmin ? 'Управление каналами' : 'Каналы' }}</h2>
 
@@ -9,7 +8,6 @@
     </button>
   </div>
 
-  <!-- Форма добавления канала -->
   @if (showAddForm) {
     <div class="card">
       <h3>Новый канал</h3>
@@ -41,7 +39,6 @@
     </div>
   }
 
-  <!-- Сообщения -->
   @if (errorMessage) {
     <div class="alert alert-error">
       {{ errorMessage }}
@@ -54,7 +51,6 @@
     </div>
   }
 
-  <!-- Загрузка -->
   @if (isLoading) {
     <div class="loading">
       <div class="spinner"></div>
@@ -62,7 +58,6 @@
     </div>
   }
 
-  <!-- USER: Мои подписки -->
   @if (!isLoading && !isAdmin) {
     <div class="section">
       <h3>Мои подписки</h3>
@@ -87,7 +82,6 @@
     </div>
   }
 
-  <!-- USER: Доступные каналы -->
   @if (!isLoading && !isAdmin) {
     <div class="section">
       <h3>Доступные каналы</h3>
@@ -108,7 +102,6 @@
     </div>
   }
 
-  <!-- ADMIN: Все каналы -->
   @if (!isLoading && isAdmin) {
     <div class="section">
       <h3>Все каналы</h3>

@@ -19,7 +19,6 @@ export class AuthService {
           localStorage.setItem('token', response.token);
           localStorage.setItem('username', username);
           
-          // Декодируем токен для проверки роли
           const tokenData = this.decodeToken(response.token);
           const admin = tokenData['IsAdmin'] === 'true';
           
@@ -96,7 +95,6 @@ private decodeJwtPayload(token: string): any | null {
     const payloadPart = token.split('.')[1];
     if (!payloadPart) return null;
 
-    // base64url -> base64
     const base64 = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
     const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
 
@@ -139,7 +137,6 @@ isUserAdmin(): boolean {
   const payload = this.decodeJwtPayload(token);
   if (!payload) return false;
 
-  // роль может быть строкой или массивом + разные ключи
   const roleValue =
     payload['role'] ||
     payload['roles'] ||

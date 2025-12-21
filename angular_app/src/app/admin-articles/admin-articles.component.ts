@@ -22,15 +22,12 @@ export class AdminArticlesComponent implements OnInit {
   loadArticles() {
     this.isLoading = true;
   
-    // 1. Загружаем ВСЕ каналы
     this.api.getAllChannels().subscribe(channels => {
   
-      // делаем map: id -> name
       const channelMap = new Map<number, string>(
         channels.map((c: any) => [c.id, c.name])
       );
   
-      // 2. Загружаем статьи
       this.api.getAllArticles().subscribe({
         next: (articles) => {
           this.groupedArticles = {};
