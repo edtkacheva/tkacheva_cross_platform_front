@@ -25,6 +25,9 @@ export class AppComponent implements OnInit, OnDestroy {
           isAdmin: this.isAdmin,
           username: this.getUsername()
         });
+        if (!this.authService.isLoggedIn()) {
+          this.router.navigate(['/login']);
+        }
       }
     });
   }
