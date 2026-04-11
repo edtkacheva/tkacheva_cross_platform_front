@@ -25,23 +25,24 @@ export class UserArticlesComponent implements OnInit {
 
   loadArticles() {
     this.isLoading = true;
-
+  
     const username = this.auth.getUsername();
     if (!username) {
       this.errorMessage = 'Пользователь не найден';
       this.isLoading = false;
       return;
     }
-
+  
     this.api.getUserSubscriptions(username).subscribe({
       next: (subscriptions) => {
         const subscribedNames = subscriptions.map((c: any) => c.name);
-
+  
         this.api.getAllArticles().subscribe({
           next: (allArticles) => {
             this.articles = allArticles.filter((a: any) =>
               subscribedNames.includes(a.rssChannel?.name)
             );
+            console.log('Загруженные статьи:', this.articles);
             this.isLoading = false;
           },
           error: () => {

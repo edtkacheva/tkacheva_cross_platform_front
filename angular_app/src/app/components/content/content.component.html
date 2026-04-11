@@ -6,11 +6,9 @@
         {{ isAdmin ? 'Все статьи' : 'Лента новостей' }}
       </h1>
 
-      @if (!isAdmin && userSubscriptions.length > 0) {
-        <p class="feed-subtitle">
-          Вы подписаны на {{ userSubscriptions.length }} каналов
-        </p>
-      }
+      <p *ngIf="!isAdmin && userSubscriptions.length > 0" class="feed-subtitle">
+        Вы подписаны на {{ userSubscriptions.length }} каналов
+      </p>
 
       <div class="feed-search">
         <input
@@ -28,49 +26,76 @@
           Найти
         </button>
 
-        @if (searchQuery) {
-          <button
-            class="feed-clear-btn"
-            (click)="clearSearch()">
-            Очистить
-          </button>
-        }
+        <button *ngIf="searchQuery"
+          class="feed-clear-btn"
+          (click)="clearSearch()">
+          Очистить
+        </button>
       </div>
     </header>
 
-    @if (isLoading) {
-      <div class="feed-loading">
-        Загрузка новостей…
-      </div>
-    }
+    <div *ngIf="isLoading" class="feed-loading">
+      Загрузка новостей…
+    </div>
 
-    @if (!isLoading && getFilteredArticles().length > 0) {
-      <section class="news-feed">
-        @for (article of getFilteredArticles(); track article.id) {
-
+    <div *ngIf="!isLoading && articles.length > 0">
+      <!-- Непрочитанные статьи -->
+      <section *ngIf="!isAdmin && getUnreadArticles().length > 0" class="news-feed">
+        <h2>Непрочитанные статьи</h2>
+        <div *ngFor="let article of getUnreadArticles(); trackBy: trackArticle">
           <article class="news-post">
-
             <div class="news-meta">
               <span class="news-date">
                 {{ formatDate(article.publishedAt) }}
               </span>
 
-              @if (article?.rssChannel?.name) {
-                <span class="news-channel">
-                  {{ article.rssChannel.name }}
-                </span>
-              }
+              <span *ngIf="article?.rssChannel?.name" class="news-channel">
+                {{ article.rssChannel.name }}
+              </span>
             </div>
 
             <h2 class="news-title">
               {{ article.title }}
             </h2>
 
-            @if (article.description) {
-              <p class="news-description">
-                {{ article.description }}
-              </p>
-            }
+            <p *ngIf="article.description" class="news-description">
+              {{ article.description }}
+            </p>
+
+            <div class="news-footer">
+              <a
+                class="read-btn"
+                href=""
+                (click)="openArticle($event, article)">
+                Читать статью
+              </a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Прочитанные статьи -->
+      <section *ngIf="!isAdmin && getReadArticles().length > 0" class="news-feed">
+        <h2>Прочитанные статьи</h2>
+        <div *ngFor="let article of getReadArticles(); trackBy: trackArticle">
+          <article class="news-post">
+            <div class="news-meta">
+              <span class="news-date">
+                {{ formatDate(article.publishedAt) }}
+              </span>
+
+              <span *ngIf="article?.rssChannel?.name" class="news-channel">
+                {{ article.rssChannel.name }}
+              </span>
+            </div>
+
+            <h2 class="news-title">
+              {{ article.title }}
+            </h2>
+
+            <p *ngIf="article.description" class="news-description">
+              {{ article.description }}
+            </p>
 
             <div class="news-footer">
               <a
@@ -81,35 +106,29 @@
                 Читать статью
               </a>
             </div>
-
           </article>
-
-        }
+        </div>
       </section>
-    }
+    </div>
 
-    @if (!isLoading && getFilteredArticles().length === 0) {
-      <div class="feed-empty">
-        <h2>
-          {{ isAdmin ? 'Статей пока нет' : 'В ленте пока пусто' }}
-        </h2>
+    <div *ngIf="!isLoading && articles.length === 0" class="feed-empty">
+      <h2>
+        {{ isAdmin ? 'Статей пока нет' : 'В ленте пока пусто' }}
+      </h2>
 
-        <p>
-          {{ isAdmin
-            ? 'Добавьте RSS-каналы, чтобы появились статьи'
-            : 'Подпишитесь на каналы, чтобы видеть новости'
-          }}
-        </p>
+      <p>
+        {{ isAdmin
+          ? 'Добавьте RSS-каналы, чтобы появились статьи'
+          : 'Подпишитесь на каналы, чтобы видеть новости'
+        }}
+      </p>
 
-        @if (!isAdmin) {
-          <a
-            routerLink="/channels"
-            class="feed-action">
-            Перейти к каналам
-          </a>
-        }
-      </div>
-    }
+      <a *ngIf="!isAdmin"
+        routerLink="/channels"
+        class="feed-action">
+        Перейти к каналам
+      </a>
+    </div>
 
   </div>
 </div>

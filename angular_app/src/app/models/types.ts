@@ -20,13 +20,18 @@ export interface Article {
   url: string;
   publishedAt: string;
   description?: string | null;
-
   rssChannelId: number;
   rssChannel?: RSSChannel | null;
+  isRead: boolean;
 }
 
 export interface LoginResponse {
   username?: string;
   token?: string;
   message?: string;
+}
+
+export interface CreateRSSChannelRequest {
+  name: string;
+  url: string;
 }

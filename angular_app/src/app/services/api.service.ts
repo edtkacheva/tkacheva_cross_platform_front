@@ -82,5 +82,13 @@ export class ApiService {
   deleteArticle(title: string) {
     return this.http.delete(`/api/articles/${title}`);
   }
+
+  getUnreadArticles(username: string): Observable<Article[]> {
+    return this.http.get<Article[]>(`${this.apiUrl}/articles/unread/${encodeURIComponent(username)}`);
+  }
+
+  markArticleAsRead(articleId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/articles/${articleId}/mark-read`, {});
+  }
   
 }
