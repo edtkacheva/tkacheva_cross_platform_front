@@ -157,3 +157,34 @@
   text-align: justify;
   margin-bottom: 28px;
 }
+
+.news-footer {
+  margin-top: auto;
+  padding-top: 20px;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.favorite-btn {
+  display: inline-block;
+  padding: 10px 22px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.favorite-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.favorite-btn.active {
+  border-color: #f59e0b;
+  background-color: #fffbeb;
+  color: #92400e;
+}

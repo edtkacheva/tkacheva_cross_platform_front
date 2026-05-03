@@ -33,7 +33,7 @@ export class UserArticlesComponent implements OnInit {
       return;
     }
   
-    this.api.getUserSubscriptions(username).subscribe({
+    this.api.getUserSubscriptions().subscribe({
       next: (subscriptions) => {
         const subscribedNames = subscriptions.map((c: any) => c.name);
   

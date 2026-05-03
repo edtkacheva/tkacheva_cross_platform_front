@@ -21,6 +21,8 @@ export class ContentComponent implements OnInit {
   isAdmin = false;
   isSearchMode = false;
   channelNameById = new Map<number, string>(); 
+  favoriteArticles: Article[] = [];
+  showFavoritesOnly = false;
 
   constructor(
     private http: HttpClient,
@@ -30,11 +32,109 @@ export class ContentComponent implements OnInit {
 
   ngOnInit() {
     this.isAdmin = this.authService.isUserAdmin();
+  
     this.loadArticles();
-
+  
     if (!this.isAdmin && this.authService.isLoggedIn()) {
       this.loadUserSubscriptions();
+  
+      if (typeof this.loadFavoriteArticles === 'function') {
+        this.loadFavoriteArticles();
+      }
     }
+  
+    this.refreshRssInBackground();
+  }
+
+  loadFavoriteArticles() {
+    this.apiService.getFavoriteArticles().subscribe({
+      next: (articles) => {
+        this.favoriteArticles = articles || [];
+      },
+      error: (error) => {
+        console.error('Ошибка загрузки избранного:', error);
+        this.favoriteArticles = [];
+      }
+    });
+  }
+
+  refreshRssInBackground() {
+    this.apiService.refreshRssArticles().subscribe({
+      next: (result) => {
+        console.log('RSS обновлены:', result);
+  
+        this.loadArticles();
+  
+        if (!this.isAdmin && this.authService.isLoggedIn()) {
+          this.loadUserSubscriptions();
+  
+          if (typeof this.loadFavoriteArticles === 'function') {
+            this.loadFavoriteArticles();
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Ошибка фонового обновления RSS:', error);
+      }
+    });
+  }
+  
+  toggleFavoritesView() {
+    this.showFavoritesOnly = !this.showFavoritesOnly;
+  
+    if (this.showFavoritesOnly) {
+      this.loadFavoriteArticles();
+    }
+  }
+  
+  getCurrentArticles() {
+    return this.showFavoritesOnly ? this.favoriteArticles : this.articles;
+  }
+  
+  getUnreadArticles() {
+    return this.getCurrentArticles().filter(a => !a.isRead);
+  }
+  
+  getReadArticles() {
+    return this.getCurrentArticles().filter(a => a.isRead);
+  }
+  
+  toggleFavorite(article: Article) {
+    const shouldBeFavorite = !article.isFavorite;
+  
+    const request = shouldBeFavorite
+      ? this.apiService.addArticleToFavorites(article.id)
+      : this.apiService.removeArticleFromFavorites(article.id);
+  
+    request.subscribe({
+      next: () => {
+        article.isFavorite = shouldBeFavorite;
+  
+        this.articles = this.articles.map(a =>
+          a.id === article.id
+            ? { ...a, isFavorite: shouldBeFavorite }
+            : a
+        );
+  
+        if (shouldBeFavorite) {
+          const exists = this.favoriteArticles.some(a => a.id === article.id);
+  
+          if (!exists) {
+            this.favoriteArticles = [
+              { ...article, isFavorite: true },
+              ...this.favoriteArticles
+            ];
+          }
+        } else {
+          this.favoriteArticles = this.favoriteArticles
+            .filter(a => a.id !== article.id);
+        }
+      },
+      error: (error) => {
+        console.error('Ошибка изменения избранного:', error);
+        this.errorMessage = 'Не удалось изменить избранное';
+      }
+    });
   }
 
   loadArticles() {
@@ -64,40 +164,53 @@ export class ContentComponent implements OnInit {
       return;
     }
 
-    this.apiService.getUnreadArticles(username).subscribe({
+    this.apiService.getMyArticles().subscribe({
       next: (articles) => {
-        console.log('Загруженные статьи:', articles);
         this.articles = articles || [];
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Ошибка загрузки непрочитанных статей:', error);
-        this.errorMessage = 'Не удалось загрузить непрочитанные статьи';
+        console.error('Ошибка загрузки статей пользователя:', error);
+        this.errorMessage = 'Не удалось загрузить статьи';
         this.isLoading = false;
       }
     });
   }
 
+  refreshRssAndLoadArticles() {
+    this.isLoading = true;
+    this.errorMessage = '';
+  
+    this.apiService.refreshRssArticles().subscribe({
+      next: () => {
+        this.loadArticles();
+  
+        if (!this.isAdmin && this.authService.isLoggedIn()) {
+          this.loadUserSubscriptions();
+        }
+      },
+      error: (error) => {
+        console.error('Ошибка обновления RSS-каналов:', error);
+  
+        this.loadArticles();
+  
+        if (!this.isAdmin && this.authService.isLoggedIn()) {
+          this.loadUserSubscriptions();
+        }
+      }
+    });
+  }
+  
   loadUserSubscriptions() {
     const username = this.authService.getUsername();
-    if (username) {
-      this.apiService.getUserSubscriptions(username).subscribe({
-        next: (subscriptions) => {
-          this.userSubscriptions = subscriptions || [];
-        },
-        error: (error) => {
-          console.error('Ошибка загрузки подписок:', error);
-        }
-      });
-    }
-  }
-
-  getUnreadArticles() {
-    return this.articles.filter(a => !a.isRead);
-  }
-
-  getReadArticles() {
-    return this.articles.filter(a => a.isRead);
+    this.apiService.getUserSubscriptions().subscribe({
+      next: (subscriptions) => {
+        this.userSubscriptions = subscriptions || [];
+      },
+      error: (error) => {
+        console.error('Ошибка загрузки подписок:', error);
+      }
+    });
   }
 
   openArticle(event: Event, article: any): void {
@@ -109,6 +222,12 @@ export class ContentComponent implements OnInit {
   
         article.isRead = true;
         this.articles = [...this.articles];
+
+        this.favoriteArticles = this.favoriteArticles.map(a =>
+          a.id === article.id
+            ? { ...a, isRead: true }
+            : a
+        );
   
         window.open(article.url, '_blank', 'noopener,noreferrer');
       },
@@ -118,6 +237,10 @@ export class ContentComponent implements OnInit {
         window.open(article.url, '_blank', 'noopener,noreferrer');
       }
     });
+  }
+
+  trackArticle(index: number, article: Article): number {
+    return article.id;
   }
 
   getFilteredArticles() {
@@ -182,14 +305,36 @@ export class ContentComponent implements OnInit {
 
   formatDate(dateString: string): string {
     try {
-      const date = new Date(dateString);
-      return isNaN(date.getTime())
-        ? 'Неизвестная дата'
-        : date.toLocaleDateString('ru-RU', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-          });
+      if (!dateString) {
+        return 'Неизвестная дата';
+      }
+  
+      const hasTimezone =
+        dateString.endsWith('Z') ||
+        /[+-]\d{2}:\d{2}$/.test(dateString);
+  
+      const normalizedDateString = hasTimezone
+        ? dateString
+        : `${dateString}Z`;
+  
+      const date = new Date(normalizedDateString);
+  
+      if (isNaN(date.getTime())) {
+        return 'Неизвестная дата';
+      }
+  
+      const time = date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+  
+      const day = date.toLocaleDateString('ru-RU', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric'
+      });
+  
+      return `${time} ${day}`;
     } catch (error) {
       return 'Неизвестная дата';
     }

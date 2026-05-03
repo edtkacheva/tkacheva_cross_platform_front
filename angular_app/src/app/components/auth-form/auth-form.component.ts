@@ -24,20 +24,21 @@ export class AuthFormComponent implements OnInit {
   ) {
     this.authForm = this.fb.group({
       username: ['', [Validators.required, Validators.minLength(3)]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      confirmPassword: ['', []]
     });
   }
 
   ngOnInit() {
     this.route.data.subscribe(data => {
       this.isRegisterMode = data['mode'] === 'register';
+      const confirmCtrl = this.authForm.get('confirmPassword');
       if (this.isRegisterMode) {
-        this.authForm.addControl('confirmPassword', this.fb.control('', Validators.required));
+        confirmCtrl?.setValidators([Validators.required, Validators.minLength(6)]);
       } else {
-        if (this.authForm.get('confirmPassword')) {
-          this.authForm.removeControl('confirmPassword');
-        }
+        confirmCtrl?.clearValidators();
       }
+      confirmCtrl?.updateValueAndValidity();
     });
   }
 
@@ -49,13 +50,16 @@ export class AuthFormComponent implements OnInit {
     if (this.isRegisterMode && 
         this.authForm.value.password !== this.authForm.value.confirmPassword) {
       this.errorMessage = 'Пароли не совпадают';
+      console.log('Пароль 1:', this.authForm.value.password);
+      console.log('Пароль 2:', this.authForm.value.confirmPassword);
+      console.log('Все значения формы:', this.authForm.value);
       return;
     }
 
     this.isLoading = true;
     this.errorMessage = '';
 
-    const { username, password } = this.authForm.value;
+    const { username, password, confirmPassword } = this.authForm.value;
 
     if (this.isRegisterMode) {
       this.authService.register({ userName: username, password: password })
@@ -63,6 +67,9 @@ export class AuthFormComponent implements OnInit {
           this.isLoading = false;
           if (!success) {
             this.errorMessage = 'Ошибка регистрации. Возможно, пользователь уже существует';
+          }
+          else {
+            this.router.navigate(['/']);
           }
         });
     } else {
@@ -72,11 +79,15 @@ export class AuthFormComponent implements OnInit {
           if (!success) {
             this.errorMessage = 'Неверный логин или пароль';
           }
+          else {
+            this.router.navigate(['/']);
+          }
         });
     }
   }
 
   switchMode() {
+    this.isRegisterMode = !this.isRegisterMode;
     this.router.navigate([this.isRegisterMode ? '/login' : '/register']);
   }
 }

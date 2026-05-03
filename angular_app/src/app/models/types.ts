@@ -23,6 +23,7 @@ export interface Article {
   rssChannelId: number;
   rssChannel?: RSSChannel | null;
   isRead: boolean;
+  isFavorite?: boolean;
 }
 
 export interface LoginResponse {

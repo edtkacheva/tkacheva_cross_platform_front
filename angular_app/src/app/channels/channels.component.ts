@@ -92,21 +92,15 @@ export class ChannelsComponent implements OnInit {
     console.log('Username для подписок:', username);
 
     if (username) {
-      this.apiService.getUserSubscriptions(username).subscribe({
+      this.apiService.getUserSubscriptions().subscribe({
         next: (subscriptions) => {
-          console.log('Подписки загружены');
-          console.log('Количество подписок:', subscriptions?.length || 0);
-          console.log('Данные подписок:', subscriptions);
-
           this.userSubscriptions = subscriptions || [];
           this.isLoading = false;
-          console.log('Загрузка завершена (пользователь)');
         },
         error: (error) => {
           console.error('Ошибка загрузки подписок:', error);
           this.userSubscriptions = [];
           this.isLoading = false;
-          console.log('Загрузка завершена, подписки очищены');
         }
       });
     } else {
@@ -130,41 +124,47 @@ export class ChannelsComponent implements OnInit {
     return isSubscribed;
   }
 
-  subscribeToChannel(channelName: string) {
+  subscribeToChannel(channel: RSSChannel) {
     const username = this.authService.getUsername();
-    if (!username) return;
-
+    if (!channel.id) return;
+  
     this.errorMessage = '';
     this.successMessage = '';
-
-    this.apiService.subscribe(username, channelName).subscribe({
+  
+    this.apiService.subscribe(channel.id).subscribe({
       next: () => {
-        this.successMessage = 'Вы успешно подписались на канал';
+        this.successMessage = `Вы подписались на канал "${channel.name}"`;
         this.loadData();
       },
       error: (error) => {
         console.error('Ошибка подписки:', error);
-        this.errorMessage = error?.error || 'Не удалось подписаться на канал';
+        this.errorMessage =
+          error?.error?.message ||
+          error?.error ||
+          'Не удалось подписаться на канал';
         this.loadData();
       }
     });
   }
 
-  unsubscribeFromChannel(channelName: string) {
+  unsubscribeFromChannel(channel: RSSChannel) {
     const username = this.authService.getUsername();
-    if (!username) return;
-
+    if (!channel.id) return;
+  
     this.errorMessage = '';
     this.successMessage = '';
-
-    this.apiService.unsubscribe(username, channelName).subscribe({
+  
+    this.apiService.unsubscribe(channel.id).subscribe({
       next: () => {
-        this.successMessage = 'Вы отписались от канала';
+        this.successMessage = `Вы отписались от канала "${channel.name}"`;
         this.loadData();
       },
       error: (error) => {
         console.error('Ошибка отписки:', error);
-        this.errorMessage = error?.error || 'Не удалось отписаться от канала';
+        this.errorMessage =
+          error?.error?.message ||
+          error?.error ||
+          'Не удалось отписаться от канала';
         this.loadData();
       }
     });
@@ -226,21 +226,32 @@ export class ChannelsComponent implements OnInit {
     });
   }
 
-  deleteChannel(name: string) {
+  deleteChannel(channel: any) {
+    const id = channel.id ?? channel.Id;
+    const name = channel.name ?? channel.Name ?? id;
+  
+    if (!id) {
+      console.error('У канала нет id:', channel);
+      this.errorMessage = 'Не удалось определить id канала для удаления';
+      return;
+    }
+  
     if (!confirm(`Удалить канал "${name}"?`)) return;
-
+  
     this.errorMessage = '';
     this.successMessage = '';
-
-    this.apiService.deleteChannel(name).subscribe({
+  
+    this.apiService.deleteChannel(id).subscribe({
       next: () => {
         this.successMessage = 'Канал удалён';
         this.loadData();
       },
       error: (error) => {
         console.error('Ошибка удаления канала:', error);
-        this.errorMessage = error?.error || 'Не удалось удалить канал';
-        this.loadData();
+        this.errorMessage =
+          error?.error?.message ||
+          error?.error ||
+          'Не удалось удалить канал';
       }
     });
   }

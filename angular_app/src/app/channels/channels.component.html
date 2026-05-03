@@ -66,39 +66,47 @@
         <p>Вы пока не подписаны ни на один канал</p>
       }
 
-      <div class="channels-grid">
-        @for (channel of userSubscriptions; track channel) {
-          <div class="channel-card subscribed">
-            <h4>{{ channel.name }}</h4>
+      @if (userSubscriptions.length > 0) {
+        <div class="channels-grid">
+          @for (channel of userSubscriptions; track channel.id) {
+            <div class="channel-card subscribed">
+              <h4>{{ channel.name }}</h4>
+              <p class="channel-url">{{ channel.url }}</p>
 
-            <button
-              class="btn btn-danger"
-              (click)="unsubscribeFromChannel(channel.name)">
-              Отписаться
-            </button>
-          </div>
-        }
-      </div>
+              <button
+                class="btn btn-danger"
+                (click)="unsubscribeFromChannel(channel)">
+                Отписаться
+              </button>
+            </div>
+          }
+        </div>
+      }
     </div>
-  }
 
-  @if (!isLoading && !isAdmin) {
     <div class="section">
       <h3>Доступные каналы</h3>
 
-      <div class="channels-grid">
-        @for (channel of getAvailableChannels(); track channel) {
-          <div class="channel-card">
-            <h4>{{ channel.name }}</h4>
+      @if (getAvailableChannels().length === 0) {
+        <p>Нет доступных каналов для подписки</p>
+      }
 
-            <button
-              class="btn btn-primary"
-              (click)="subscribeToChannel(channel.name)">
-              Подписаться
-            </button>
-          </div>
-        }
-      </div>
+      @if (getAvailableChannels().length > 0) {
+        <div class="channels-grid">
+          @for (channel of getAvailableChannels(); track channel.id) {
+            <div class="channel-card">
+              <h4>{{ channel.name }}</h4>
+              <p class="channel-url">{{ channel.url }}</p>
+
+              <button
+                class="btn btn-primary"
+                (click)="subscribeToChannel(channel)">
+                Подписаться
+              </button>
+            </div>
+          }
+        </div>
+      }
     </div>
   }
 
@@ -107,13 +115,14 @@
       <h3>Все каналы</h3>
 
       <div class="channels-grid">
-        @for (channel of allChannels; track channel) {
+        @for (channel of allChannels; track channel.id) {
           <div class="channel-card admin-view">
             <h4>{{ channel.name }}</h4>
+            <p class="channel-url">{{ channel.url }}</p>
 
             <button
               class="btn btn-danger"
-              (click)="deleteChannel(channel.name)">
+              (click)="deleteChannel(channel)">
               Удалить
             </button>
           </div>

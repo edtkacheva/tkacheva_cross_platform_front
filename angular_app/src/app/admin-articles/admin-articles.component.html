@@ -1,12 +1,25 @@
 <h2>Все статьи</h2>
 
-<div *ngFor="let channel of groupedArticles | keyvalue">
-  <h3>{{ channel.key }}</h3>
+<div *ngIf="isLoading">Загрузка...</div>
+<div *ngIf="errorMessage">{{ errorMessage }}</div>
 
-  <ul>
-    <li *ngFor="let article of channel.value">
-      {{ article.title }}
-      <button (click)="deleteArticle(article.title)">Удалить</button>
-    </li>
-  </ul>
+<div *ngIf="!isLoading && !errorMessage">
+
+  <div *ngIf="(groupedArticles | keyvalue).length === 0">
+    <p>Нет статей</p>
+  </div>
+
+  <div *ngFor="let channel of groupedArticles | keyvalue">
+    <h3>{{ channel.key }}</h3>
+
+    <ul>
+      <li *ngFor="let article of channel.value">
+        {{ article.title }}
+        <button (click)="deleteArticle(article.title)">
+          Удалить
+        </button>
+      </li>
+    </ul>
+  </div>
+
 </div>
