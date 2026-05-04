@@ -3,15 +3,23 @@
 
     <header class="feed-header">
       <h1 class="feed-title">
-        {{ isAdmin ? 'Все статьи' : (showFavoritesOnly ? 'Избранное' : 'Лента новостей') }}
+        {{
+          isAdmin
+            ? 'Все статьи'
+            : (showFavoritesOnly ? 'Избранное' : 'Лента новостей')
+        }}
       </h1>
 
-      <p *ngIf="!isAdmin && userSubscriptions.length > 0 && !showFavoritesOnly" class="feed-subtitle">
+      <p *ngIf="!isAdmin && userSubscriptions.length > 0 && !showFavoritesOnly && !isSearchMode" class="feed-subtitle">
         Вы подписаны на {{ userSubscriptions.length }} каналов
       </p>
 
       <p *ngIf="!isAdmin && showFavoritesOnly" class="feed-subtitle">
         Сохранённые статьи
+      </p>
+
+      <p *ngIf="!isAdmin && isSearchMode" class="feed-subtitle">
+        Результаты поиска
       </p>
 
       <div class="feed-search">
@@ -25,13 +33,14 @@
 
         <button
           class="feed-search-btn"
+          type="button"
           (click)="searchArticles()"
           [disabled]="!searchQuery.trim() || isLoading">
           Найти
         </button>
 
         <button
-          *ngIf="searchQuery"
+          *ngIf="searchQuery || isSearchMode"
           class="feed-clear-btn"
           type="button"
           (click)="clearSearch()">
@@ -54,97 +63,10 @@
 
     <div *ngIf="!isLoading && getCurrentArticles().length > 0">
 
-      <section *ngIf="!isAdmin && getUnreadArticles().length > 0" class="news-feed">
-        <h2>Непрочитанные статьи</h2>
-
-        <div *ngFor="let article of getUnreadArticles(); trackBy: trackArticle">
-          <article class="news-post">
-            <div class="news-meta">
-              <span class="news-date">
-                {{ formatDate(article.publishedAt) }}
-              </span>
-
-              <span *ngIf="article?.rssChannel?.name" class="news-channel">
-                {{ article.rssChannel.name }}
-              </span>
-            </div>
-
-            <h2 class="news-title">
-              {{ article.title }}
-            </h2>
-
-            <p *ngIf="article.description" class="news-description">
-              {{ article.description }}
-            </p>
-
-            <div class="news-footer">
-              <button
-                *ngIf="!isAdmin"
-                class="favorite-btn"
-                type="button"
-                [class.active]="article.isFavorite"
-                (click)="toggleFavorite(article)">
-                {{ article.isFavorite ? '★ В избранном' : '☆ В избранное' }}
-              </button>
-
-              <a
-                class="read-btn"
-                href=""
-                (click)="openArticle($event, article)">
-                Читать статью
-              </a>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section *ngIf="!isAdmin && getReadArticles().length > 0" class="news-feed">
-        <h2>Прочитанные статьи</h2>
-
-        <div *ngFor="let article of getReadArticles(); trackBy: trackArticle">
-          <article class="news-post">
-            <div class="news-meta">
-              <span class="news-date">
-                {{ formatDate(article.publishedAt) }}
-              </span>
-
-              <span *ngIf="article?.rssChannel?.name" class="news-channel">
-                {{ article.rssChannel.name }}
-              </span>
-            </div>
-
-            <h2 class="news-title">
-              {{ article.title }}
-            </h2>
-
-            <p *ngIf="article.description" class="news-description">
-              {{ article.description }}
-            </p>
-
-            <div class="news-footer">
-              <button
-                *ngIf="!isAdmin"
-                class="favorite-btn"
-                type="button"
-                [class.active]="article.isFavorite"
-                (click)="toggleFavorite(article)">
-                {{ article.isFavorite ? '★ В избранном' : '☆ В избранное' }}
-              </button>
-
-              <a
-                class="read-btn"
-                [href]="article.url"
-                target="_blank"
-                rel="noopener noreferrer">
-                Читать статью
-              </a>
-            </div>
-          </article>
-        </div>
-      </section>
-
       <section *ngIf="isAdmin" class="news-feed">
-        <h2>Все статьи</h2>
+        <h2>
+          {{ isSearchMode ? 'Результаты поиска' : 'Все статьи' }}
+        </h2>
 
         <div *ngFor="let article of getCurrentArticles(); trackBy: trackArticle">
           <article class="news-post">
@@ -179,6 +101,196 @@
         </div>
       </section>
 
+      <section *ngIf="!isAdmin && showFavoritesOnly" class="news-feed">
+        <h2>Избранные статьи</h2>
+
+        <div *ngFor="let article of favoriteArticles; trackBy: trackArticle">
+          <article class="news-post" [class.read-article]="article.isRead">
+            <div class="news-meta">
+              <span class="news-date">
+                {{ formatDate(article.publishedAt) }}
+              </span>
+
+              <span *ngIf="article?.rssChannel?.name" class="news-channel">
+                {{ article.rssChannel.name }}
+              </span>
+            </div>
+
+            <h2 class="news-title">
+              {{ article.title }}
+            </h2>
+
+            <p *ngIf="article.description" class="news-description">
+              {{ article.description }}
+            </p>
+
+            <div class="news-footer">
+              <button
+                class="favorite-btn"
+                type="button"
+                [class.active]="article.isFavorite"
+                (click)="toggleFavorite(article)">
+                {{ article.isFavorite ? '★ В избранном' : '☆ В избранное' }}
+              </button>
+
+              <a
+                class="read-btn"
+                href=""
+                (click)="openArticle($event, article)">
+                Читать статью
+              </a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section *ngIf="!isAdmin && isSearchMode && !showFavoritesOnly" class="news-feed">
+        <h2>Результаты поиска</h2>
+
+        <div *ngFor="let article of searchResults; trackBy: trackArticle">
+          <article class="news-post" [class.read-article]="article.isRead">
+            <div class="news-meta">
+              <span class="news-date">
+                {{ formatDate(article.publishedAt) }}
+              </span>
+
+              <span *ngIf="article?.rssChannel?.name" class="news-channel">
+                {{ article.rssChannel.name }}
+              </span>
+            </div>
+
+            <h2 class="news-title">
+              {{ article.title }}
+            </h2>
+
+            <p *ngIf="article.description" class="news-description">
+              {{ article.description }}
+            </p>
+
+            <div class="news-footer">
+              <button
+                class="favorite-btn"
+                type="button"
+                [class.active]="article.isFavorite"
+                (click)="toggleFavorite(article)">
+                {{ article.isFavorite ? '★ В избранном' : '☆ В избранное' }}
+              </button>
+
+              <a
+                class="read-btn"
+                href=""
+                (click)="openArticle($event, article)">
+                Читать статью
+              </a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section *ngIf="!isAdmin && !showFavoritesOnly && !isSearchMode" class="news-feed">
+
+        <ng-container *ngIf="hasUnreadSection()">
+          <h2>Непрочитанные статьи</h2>
+
+          <div
+            *ngFor="let article of unreadArticles; trackBy: trackArticle"
+            #articleCard
+            [attr.data-article-id]="article.id">
+
+            <article class="news-post" [class.read-article]="article.isRead">
+              <div class="news-meta">
+                <span class="news-date">
+                  {{ formatDate(article.publishedAt) }}
+                </span>
+
+                <span *ngIf="article?.rssChannel?.name" class="news-channel">
+                  {{ article.rssChannel.name }}
+                </span>
+              </div>
+
+              <h2 class="news-title">
+                {{ article.title }}
+              </h2>
+
+              <p *ngIf="article.description" class="news-description">
+                {{ article.description }}
+              </p>
+
+              <div class="news-footer">
+                <button
+                  class="favorite-btn"
+                  type="button"
+                  [class.active]="article.isFavorite"
+                  (click)="toggleFavorite(article)">
+                  {{ article.isFavorite ? '★ В избранном' : '☆ В избранное' }}
+                </button>
+
+                <a
+                  class="read-btn"
+                  href=""
+                  (click)="openArticle($event, article)">
+                  Читать статью
+                </a>
+              </div>
+            </article>
+          </div>
+        </ng-container>
+
+        <ng-container *ngIf="hasReadSection()">
+          <h2>Прочитанные статьи</h2>
+
+          <div *ngFor="let article of readArticles; trackBy: trackArticle">
+            <article class="news-post read-article">
+              <div class="news-meta">
+                <span class="news-date">
+                  {{ formatDate(article.publishedAt) }}
+                </span>
+
+                <span *ngIf="article?.rssChannel?.name" class="news-channel">
+                  {{ article.rssChannel.name }}
+                </span>
+              </div>
+
+              <h2 class="news-title">
+                {{ article.title }}
+              </h2>
+
+              <p *ngIf="article.description" class="news-description">
+                {{ article.description }}
+              </p>
+
+              <div class="news-footer">
+                <button
+                  class="favorite-btn"
+                  type="button"
+                  [class.active]="article.isFavorite"
+                  (click)="toggleFavorite(article)">
+                  {{ article.isFavorite ? '★ В избранном' : '☆ В избранное' }}
+                </button>
+
+                <a
+                  class="read-btn"
+                  href=""
+                  (click)="openArticle($event, article)">
+                  Читать статью
+                </a>
+              </div>
+            </article>
+          </div>
+        </ng-container>
+
+        <div
+          #loadMoreTrigger
+          class="load-more-trigger"
+          *ngIf="hasMoreUnreadArticles || hasMoreReadArticles">
+        </div>
+
+        <div *ngIf="isLoadingMore" class="feed-loading">
+          Загружаем ещё статьи…
+        </div>
+
+      </section>
+
     </div>
 
     <div *ngIf="!isLoading && getCurrentArticles().length === 0" class="feed-empty">
@@ -186,7 +298,15 @@
         {{
           isAdmin
             ? 'Статей пока нет'
-            : (showFavoritesOnly ? 'В избранном пока нет статей' : 'В ленте пока пусто')
+            : (
+                showFavoritesOnly
+                  ? 'В избранном пока нет статей'
+                  : (
+                      isSearchMode
+                        ? 'По вашему запросу ничего не найдено'
+                        : 'В ленте пока пусто'
+                    )
+              )
         }}
       </h2>
 
@@ -197,13 +317,17 @@
             : (
                 showFavoritesOnly
                   ? 'Добавьте статьи в избранное, чтобы они отображались здесь'
-                  : 'Подпишитесь на каналы, чтобы видеть новости'
+                  : (
+                      isSearchMode
+                        ? 'Попробуйте изменить поисковый запрос'
+                        : 'Подпишитесь на каналы, чтобы видеть новости'
+                    )
               )
         }}
       </p>
 
       <a
-        *ngIf="!isAdmin && !showFavoritesOnly"
+        *ngIf="!isAdmin && !showFavoritesOnly && !isSearchMode"
         routerLink="/channels"
         class="feed-action">
         Перейти к каналам
@@ -215,6 +339,14 @@
         type="button"
         (click)="toggleFavoritesView()">
         Вернуться ко всем статьям
+      </button>
+
+      <button
+        *ngIf="!isAdmin && isSearchMode"
+        class="feed-clear-btn feed-action"
+        type="button"
+        (click)="clearSearch()">
+        Вернуться к ленте
       </button>
     </div>
 

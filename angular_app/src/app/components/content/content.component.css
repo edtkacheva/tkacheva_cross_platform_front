@@ -188,3 +188,17 @@
   background-color: #fffbeb;
   color: #92400e;
 }
+
+.read-article {
+  opacity: 0.72;
+}
+
+.read-status {
+  margin-left: 12px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.load-more-trigger {
+  height: 1px;
+}

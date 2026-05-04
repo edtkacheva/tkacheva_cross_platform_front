@@ -95,11 +95,18 @@ export class ApiService {
     return this.http.delete(`/api/articles/${title}`);
   }
 
-  getMyArticles(): Observable<Article[]> {
+  getMyUnreadArticles(pageSize: number): Observable<Article[]> {
     return this.http.get<Article[]>(
-      `${this.apiUrl}/articles/me`
+      `${this.apiUrl}/articles/me?isRead=false&page=1&pageSize=${pageSize}`
     );
   }
+  
+  getMyReadArticles(page: number, pageSize: number, readBefore: string): Observable<Article[]> {
+    return this.http.get<Article[]>(
+      `${this.apiUrl}/articles/me?isRead=true&page=${page}&pageSize=${pageSize}&readBefore=${encodeURIComponent(readBefore)}`
+    );
+  }
+
   getFavoriteArticles(): Observable<Article[]> {
     return this.http.get<Article[]>(
       `${this.apiUrl}/articles/me/favorites`
