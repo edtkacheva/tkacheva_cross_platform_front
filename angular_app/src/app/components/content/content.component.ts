@@ -10,7 +10,6 @@ import {
 } from '@angular/core';
 
 import { ApiService, ArticleFilterParams } from '../../services/api.service';
-import { AuthService } from '../../services/auth.service';
 import { Article, RSSChannel } from '../../models/types';
 
 type SortOrder = 'newest' | 'oldest';
@@ -47,10 +46,7 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('articleCard') articleCards!: QueryList<ElementRef<HTMLElement>>;
   @ViewChild('loadMoreTrigger') loadMoreTrigger?: ElementRef<HTMLElement>;
 
-  constructor(
-    private apiService: ApiService,
-    public authService: AuthService
-  ) {}
+  constructor(private apiService: ApiService) {}
 
   ngOnInit() {
     this.loadUserSubscriptions();
@@ -99,11 +95,6 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
       this.isLoadingMore = true;
     }
 
-    /*
-      Для ленты непрочитанных статей всегда берём page = 1.
-      Причина: при пролистывании статьи становятся прочитанными в БД,
-      поэтому обычная page=2/page=3 пагинация может пропускать статьи.
-    */
     const pageToLoad = 1;
 
     this.apiService.getMyUnreadArticles(
@@ -334,11 +325,6 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
       next: () => {
         this.markingReadIds.delete(article.id);
 
-        /*
-          Не удаляем статью из ленты сразу.
-          Она становится бледнее и исчезнет только после обновления страницы
-          или повторного входа в ленту.
-        */
         this.articles = this.articles.map(a =>
           a.id === article.id
             ? { ...a, isRead: true }

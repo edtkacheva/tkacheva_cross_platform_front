@@ -230,36 +230,6 @@
     flex: 1;
   }
   
-  .btn-delete {
-    background: #f44336;
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    font-size: 18px;
-    line-height: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  
-  .btn-delete:hover {
-    background: #d32f2f;
-  }
-  
-  .subscribed-badge {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-    background: #e8f5e9;
-    color: #2e7d32;
-    font-weight: 500;
-    margin-left: 8px;
-  }
-  
   .channel-url {
     color: #666;
     font-size: 14px;
@@ -267,21 +237,7 @@
     margin: 8px 0;
     font-family: monospace;
   }
-  
-  .channel-stats {
-    display: flex;
-    gap: 16px;
-    font-size: 13px;
-    color: #666;
-    margin-top: 12px;
-  }
-  
-  .stat {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
-  
+
   .channel-footer {
     margin-top: 16px;
     padding-top: 16px;
@@ -289,27 +245,4 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-  }
-  
-  .channel-id {
-    color: #888;
-    font-size: 12px;
-    font-family: monospace;
-  }
-  
-  .no-data {
-    text-align: center;
-    padding: 60px 20px;
-    color: #666;
-  }
-  
-  .empty-state {
-    max-width: 400px;
-    margin: 0 auto;
-  }
-  
-  .empty-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    opacity: 0.5;
   }

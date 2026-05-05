@@ -6,7 +6,6 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 
 import { AppComponent } from './app.component';
-import { HeaderComponent } from './components/header/header.component';
 import { ContentComponent } from './components/content/content.component';
 import { AuthFormComponent } from './components/auth-form/auth-form.component';
 import { ChannelsComponent } from './channels/channels.component';
@@ -36,7 +35,6 @@ const routes: Routes = [
 @NgModule({
   declarations: [
     AppComponent,
-    HeaderComponent,
     ContentComponent,
     ArchiveComponent,
     FavoritesComponent,

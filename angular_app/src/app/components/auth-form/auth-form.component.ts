@@ -2,7 +2,6 @@ import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { ApiService } from '../../services/api.service';
 
 @Component({
   selector: 'app-auth-form',
@@ -50,9 +49,6 @@ export class AuthFormComponent implements OnInit {
     if (this.isRegisterMode && 
         this.authForm.value.password !== this.authForm.value.confirmPassword) {
       this.errorMessage = 'Пароли не совпадают';
-      console.log('Пароль 1:', this.authForm.value.password);
-      console.log('Пароль 2:', this.authForm.value.confirmPassword);
-      console.log('Все значения формы:', this.authForm.value);
       return;
     }
 

@@ -97,8 +97,7 @@
   box-shadow: 0 0 0 3px rgba(91, 141, 239, 0.15);
 }
 
-.feed-clear-btn,
-.feed-search-btn {
+.feed-clear-btn {
   min-height: 44px;
   padding: 0 16px;
   border: 1px solid #d1d5db;
@@ -110,8 +109,7 @@
   white-space: nowrap;
 }
 
-.feed-clear-btn:hover,
-.feed-search-btn:hover {
+.feed-clear-btn:hover {
   background: #f3f4f6;
 }
 

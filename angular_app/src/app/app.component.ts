@@ -20,11 +20,6 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.routerSubscription = this.router.events.subscribe(event => {
       if (event instanceof NavigationEnd) {
-        console.log('Route changed, auth status:', {
-          isLoggedIn: this.isLoggedIn,
-          isAdmin: this.isAdmin,
-          username: this.getUsername()
-        });
         if (!this.authService.isLoggedIn()) {
           this.router.navigate(['/login']);
         }

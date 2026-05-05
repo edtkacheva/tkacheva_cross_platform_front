@@ -88,16 +88,6 @@
   color: white;
 }
 
-.logout-text {
-  display: inline-block;
-}
-
-.main-content {
-  min-height: calc(100vh - 64px);
-  background: #f8f9fa;
-}
-
-/* Адаптивность */
 @media (max-width: 768px) {
   .header-container {
     padding: 0 16px;
