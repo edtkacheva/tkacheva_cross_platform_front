@@ -1,7 +1,20 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { User, RSSChannel, Article, LoginResponse } from '../models/types';
+import {
+  User,
+  RSSChannel,
+  Article,
+  LoginResponse,
+  CreateRSSChannelRequest
+} from '../models/types';
+
+export interface ArticleFilterParams {
+  search?: string;
+  channelIds?: number[];
+  sortOrder?: 'newest' | 'oldest';
+  periodFilter?: 'all' | 'lastMonth' | 'lastYear' | 'previousYear';
+}
 
 @Injectable({
   providedIn: 'root'
@@ -13,12 +26,12 @@ export class ApiService {
     return encodeURIComponent(value);
   }
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
   login(username: string, password: string): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(`${this.apiUrl}/auth/login`, {
-      username: username,
-      password: password
+      username,
+      password
     });
   }
 
@@ -27,12 +40,18 @@ export class ApiService {
   }
 
   getCurrentUser(): Observable<User> {
-    const username = localStorage.getItem('username');
-    return this.http.get<User>(`${this.apiUrl}/users/${username}`);
+    const username = localStorage.getItem('username') || '';
+    return this.http.get<User>(`${this.apiUrl}/users/${this.encode(username)}`);
   }
 
   getAllUsers(): Observable<User[]> {
     return this.http.get<User[]>(`${this.apiUrl}/users`);
+  }
+
+  deleteUser(username: string): Observable<any> {
+    return this.http.delete(
+      `${this.apiUrl}/users/${this.encode(username)}`
+    );
   }
 
   subscribe(channelId: number): Observable<any> {
@@ -41,34 +60,40 @@ export class ApiService {
       {}
     );
   }
-  
+
   unsubscribe(channelId: number): Observable<any> {
     return this.http.post(
       `${this.apiUrl}/users/me/unsubscribe/${channelId}`,
       {}
     );
   }
-  
+
   getUserSubscriptions(): Observable<RSSChannel[]> {
     return this.http.get<RSSChannel[]>(
       `${this.apiUrl}/users/me/subscriptions`
     );
   }
-  
+
   getAllChannels(): Observable<RSSChannel[]> {
     return this.http.get<RSSChannel[]>(`${this.apiUrl}/rss`);
   }
 
   getChannel(name: string): Observable<RSSChannel> {
-    return this.http.get<RSSChannel>(`${this.apiUrl}/rss/${name}`);
+    return this.http.get<RSSChannel>(
+      `${this.apiUrl}/rss/${this.encode(name)}`
+    );
+  }
+
+  createChannel(channel: CreateRSSChannelRequest): Observable<RSSChannel> {
+    return this.http.post<RSSChannel>(`${this.apiUrl}/rss`, channel);
+  }
+
+  deleteChannel(id: number): Observable<any> {
+    return this.http.delete(`${this.apiUrl}/rss/${id}`);
   }
 
   refreshRssArticles(): Observable<any> {
     return this.http.post(`${this.apiUrl}/rss/refresh`, {});
-  }
-
-  createChannel(channel: RSSChannel): Observable<RSSChannel> {
-    return this.http.post<RSSChannel>(`${this.apiUrl}/rss`, channel);
   }
 
   getAllArticles(): Observable<Article[]> {
@@ -76,34 +101,80 @@ export class ApiService {
   }
 
   getArticle(title: string): Observable<Article> {
-    return this.http.get<Article>(`${this.apiUrl}/articles/${encodeURIComponent(title)}`);
+    return this.http.get<Article>(
+      `${this.apiUrl}/articles/${this.encode(title)}`
+    );
   }
 
   createArticle(article: any): Observable<Article> {
     return this.http.post<Article>(`${this.apiUrl}/articles`, article);
   }
 
-  searchArticlesByDescription(text: string): Observable<Article[]> {
-    return this.http.get<Article[]>(`${this.apiUrl}/articles/search/description/${encodeURIComponent(text)}`);
-  }
-
-  deleteChannel(id: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/rss/${id}`);
-  }
-  
-  deleteArticle(title: string) {
-    return this.http.delete(`/api/articles/${title}`);
-  }
-
-  getMyUnreadArticles(pageSize: number): Observable<Article[]> {
-    return this.http.get<Article[]>(
-      `${this.apiUrl}/articles/me?isRead=false&page=1&pageSize=${pageSize}`
+  deleteArticle(title: string): Observable<any> {
+    return this.http.delete(
+      `${this.apiUrl}/articles/${this.encode(title)}`
     );
   }
-  
-  getMyReadArticles(page: number, pageSize: number, readBefore: string): Observable<Article[]> {
+
+  searchArticlesByDescription(text: string): Observable<Article[]> {
     return this.http.get<Article[]>(
-      `${this.apiUrl}/articles/me?isRead=true&page=${page}&pageSize=${pageSize}&readBefore=${encodeURIComponent(readBefore)}`
+      `${this.apiUrl}/articles/search/description/${this.encode(text)}`
+    );
+  }
+
+  private buildArticleParams(
+    isRead: boolean,
+    page: number,
+    pageSize: number,
+    filters?: ArticleFilterParams
+  ): HttpParams {
+    let params = new HttpParams()
+      .set('isRead', String(isRead))
+      .set('page', String(page))
+      .set('pageSize', String(pageSize));
+
+    if (filters?.search?.trim()) {
+      params = params.set('search', filters.search.trim());
+    }
+
+    if (filters?.channelIds && filters.channelIds.length > 0) {
+      params = params.set('channelIds', filters.channelIds.join(','));
+    }
+
+    if (filters?.sortOrder) {
+      params = params.set('sortOrder', filters.sortOrder);
+    }
+
+    if (filters?.periodFilter) {
+      params = params.set('periodFilter', filters.periodFilter);
+    }
+
+    return params;
+  }
+
+  getMyUnreadArticles(
+    page: number,
+    pageSize: number,
+    filters?: ArticleFilterParams
+  ): Observable<Article[]> {
+    return this.http.get<Article[]>(
+      `${this.apiUrl}/articles/me`,
+      {
+        params: this.buildArticleParams(false, page, pageSize, filters)
+      }
+    );
+  }
+
+  getMyReadArticles(
+    page: number,
+    pageSize: number,
+    filters?: ArticleFilterParams
+  ): Observable<Article[]> {
+    return this.http.get<Article[]>(
+      `${this.apiUrl}/articles/me`,
+      {
+        params: this.buildArticleParams(true, page, pageSize, filters)
+      }
     );
   }
 
@@ -112,23 +183,24 @@ export class ApiService {
       `${this.apiUrl}/articles/me/favorites`
     );
   }
-  
-  deleteUser(username: string): Observable<any> {
-    return this.http.delete(
-      `${this.apiUrl}/users/${this.encode(username)}`
+
+  markArticleAsRead(articleId: number): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/articles/${articleId}/mark-read`,
+      {}
     );
   }
 
-  markArticleAsRead(articleId: number): Observable<any> {
-    return this.http.post(`${this.apiUrl}/articles/${articleId}/mark-read`, {});
+  addArticleToFavorites(articleId: number): Observable<any> {
+    return this.http.post(
+      `${this.apiUrl}/articles/${articleId}/favorite`,
+      {}
+    );
   }
 
-  addArticleToFavorites(articleId: number): Observable<any> {
-    return this.http.post(`${this.apiUrl}/articles/${articleId}/favorite`, {});
-  }
-  
   removeArticleFromFavorites(articleId: number): Observable<any> {
-    return this.http.delete(`${this.apiUrl}/articles/${articleId}/favorite`);
+    return this.http.delete(
+      `${this.apiUrl}/articles/${articleId}/favorite`
+    );
   }
-  
 }

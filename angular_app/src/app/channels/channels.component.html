@@ -3,14 +3,21 @@
   <div class="page-header">
     <h2>{{ isAdmin ? 'Управление каналами' : 'Каналы' }}</h2>
 
-    <button class="btn btn-primary" (click)="toggleAddForm()">
+    <button
+      class="btn btn-primary"
+      type="button"
+      (click)="toggleAddForm()">
       {{ showAddForm ? 'Отмена' : 'Добавить канал' }}
     </button>
   </div>
 
   @if (showAddForm) {
-    <div class="card">
+    <div class="card add-channel-form">
       <h3>Новый канал</h3>
+
+      <p class="form-description">
+        Введите название канала и ссылку на RSS-ленту.
+      </p>
 
       <div class="form-row">
         <div class="form-group">
@@ -18,7 +25,8 @@
           <input
             class="form-input"
             type="text"
-            [(ngModel)]="newChannel.name">
+            [(ngModel)]="newChannel.name"
+            placeholder="Например: Новости физики">
         </div>
 
         <div class="form-group">
@@ -26,28 +34,73 @@
           <input
             class="form-input"
             type="text"
-            [(ngModel)]="newChannel.url">
+            [(ngModel)]="newChannel.url"
+            placeholder="https://example.com/rss.xml">
         </div>
       </div>
 
-      <button
-        class="btn btn-primary"
-        (click)="addNewChannel()"
-        [disabled]="!newChannel.name || !newChannel.url">
-        {{ isAdmin ? 'Добавить канал' : 'Добавить и подписаться' }}
-      </button>
+      <div class="form-actions">
+        <button
+          class="btn btn-primary"
+          type="button"
+          (click)="addNewChannel()"
+          [disabled]="!newChannel.name.trim() || !newChannel.url.trim()">
+          {{ isAdmin ? 'Добавить канал' : 'Добавить и подписаться' }}
+        </button>
+
+        <button
+          class="btn btn-outline"
+          type="button"
+          (click)="toggleAddForm()">
+          Отмена
+        </button>
+      </div>
     </div>
   }
+
+  <div class="card">
+    <div class="form-group">
+      <label>Поиск каналов</label>
+
+      <input
+        class="form-input"
+        type="text"
+        placeholder="Введите название канала или RSS-ссылку"
+        [value]="channelSearchQuery"
+        (input)="onChannelSearchInput($event)">
+    </div>
+
+    @if (hasSearchQuery()) {
+      <button
+        class="btn btn-outline"
+        type="button"
+        (click)="clearChannelSearch()">
+        Очистить поиск
+      </button>
+    }
+  </div>
 
   @if (errorMessage) {
     <div class="alert alert-error">
       {{ errorMessage }}
+      <button
+        class="close-btn"
+        type="button"
+        (click)="errorMessage = ''">
+        ×
+      </button>
     </div>
   }
 
   @if (successMessage) {
     <div class="alert alert-success">
       {{ successMessage }}
+      <button
+        class="close-btn"
+        type="button"
+        (click)="successMessage = ''">
+        ×
+      </button>
     </div>
   }
 
@@ -66,18 +119,32 @@
         <p>Вы пока не подписаны ни на один канал</p>
       }
 
-      @if (userSubscriptions.length > 0) {
-        <div class="channels-grid">
-          @for (channel of userSubscriptions; track channel.id) {
-            <div class="channel-card subscribed">
-              <h4>{{ channel.name }}</h4>
-              <p class="channel-url">{{ channel.url }}</p>
+      @if (userSubscriptions.length > 0 && getFilteredUserSubscriptions().length === 0) {
+        <p>По вашему запросу среди подписок ничего не найдено</p>
+      }
 
-              <button
-                class="btn btn-danger"
-                (click)="unsubscribeFromChannel(channel)">
-                Отписаться
-              </button>
+      @if (getFilteredUserSubscriptions().length > 0) {
+        <div class="channels-grid">
+          @for (channel of getFilteredUserSubscriptions(); track channel.id) {
+            <div class="channel-card subscribed">
+              <div class="channel-header">
+                <h4 class="channel-title">
+                  {{ channel.name }}
+                </h4>
+              </div>
+
+              <p class="channel-url">
+                {{ channel.url }}
+              </p>
+
+              <div class="channel-footer">
+                <button
+                  class="btn btn-danger"
+                  type="button"
+                  (click)="unsubscribeFromChannel(channel)">
+                  Отписаться
+                </button>
+              </div>
             </div>
           }
         </div>
@@ -88,21 +155,37 @@
       <h3>Доступные каналы</h3>
 
       @if (getAvailableChannels().length === 0) {
-        <p>Нет доступных каналов для подписки</p>
+        <p>
+          {{
+            hasSearchQuery()
+              ? 'По вашему запросу среди доступных для подписки каналов ничего не найдено'
+              : 'Нет доступных каналов для подписки'
+          }}
+        </p>
       }
 
       @if (getAvailableChannels().length > 0) {
         <div class="channels-grid">
           @for (channel of getAvailableChannels(); track channel.id) {
             <div class="channel-card">
-              <h4>{{ channel.name }}</h4>
-              <p class="channel-url">{{ channel.url }}</p>
+              <div class="channel-header">
+                <h4 class="channel-title">
+                  {{ channel.name }}
+                </h4>
+              </div>
 
-              <button
-                class="btn btn-primary"
-                (click)="subscribeToChannel(channel)">
-                Подписаться
-              </button>
+              <p class="channel-url">
+                {{ channel.url }}
+              </p>
+
+              <div class="channel-footer">
+                <button
+                  class="btn btn-primary"
+                  type="button"
+                  (click)="subscribeToChannel(channel)">
+                  Подписаться
+                </button>
+              </div>
             </div>
           }
         </div>
@@ -114,20 +197,42 @@
     <div class="section">
       <h3>Все каналы</h3>
 
-      <div class="channels-grid">
-        @for (channel of allChannels; track channel.id) {
-          <div class="channel-card admin-view">
-            <h4>{{ channel.name }}</h4>
-            <p class="channel-url">{{ channel.url }}</p>
+      @if (getFilteredAllChannels().length === 0) {
+        <p>
+          {{
+            hasSearchQuery()
+              ? 'По вашему запросу каналы не найдены'
+              : 'Каналов пока нет'
+          }}
+        </p>
+      }
 
-            <button
-              class="btn btn-danger"
-              (click)="deleteChannel(channel)">
-              Удалить
-            </button>
-          </div>
-        }
-      </div>
+      @if (getFilteredAllChannels().length > 0) {
+        <div class="channels-grid">
+          @for (channel of getFilteredAllChannels(); track channel.id) {
+            <div class="channel-card admin-view">
+              <div class="channel-header">
+                <h4 class="channel-title">
+                  {{ channel.name }}
+                </h4>
+              </div>
+
+              <p class="channel-url">
+                {{ channel.url }}
+              </p>
+
+              <div class="channel-footer">
+                <button
+                  class="btn btn-danger"
+                  type="button"
+                  (click)="deleteChannel(channel)">
+                  Удалить
+                </button>
+              </div>
+            </div>
+          }
+        </div>
+      }
     </div>
   }
 

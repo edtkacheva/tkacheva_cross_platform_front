@@ -2,10 +2,10 @@
   <div class="feed-container">
 
     <header class="feed-header">
-      <h1 class="feed-title">Лента</h1>
+      <h1 class="feed-title">Архив</h1>
 
-      <p *ngIf="userSubscriptions.length > 0" class="feed-subtitle">
-        Вы подписаны на {{ userSubscriptions.length }} каналов
+      <p class="feed-subtitle">
+        Здесь хранятся статьи, которые вы уже прочитали
       </p>
 
       <div class="filters-card">
@@ -80,7 +80,7 @@
     </header>
 
     <div *ngIf="isLoading" class="feed-loading">
-      Загрузка ленты…
+      Загрузка архива…
     </div>
 
     <div *ngIf="errorMessage" class="feed-empty">
@@ -88,17 +88,9 @@
     </div>
 
     <section *ngIf="!isLoading && getFilteredArticles().length > 0" class="news-feed">
-      <h2>Непрочитанные статьи</h2>
-
       <div
-        *ngFor="let article of getFilteredArticles(); trackBy: trackArticle"
-        #articleCard
-        [attr.data-article-id]="article.id">
-
-        <article
-          class="news-post"
-          [class.read-article-in-feed]="article.isRead">
-
+        *ngFor="let article of getFilteredArticles(); trackBy: trackArticle">
+        <article class="news-post">
           <div class="news-meta">
             <span class="news-date">
               {{ formatDate(article.publishedAt) }}
@@ -136,23 +128,17 @@
         </article>
       </div>
 
-      <div
-        #loadMoreTrigger
-        class="load-more-trigger"
-        *ngIf="hasMoreArticles">
-      </div>
-
-      <div *ngIf="isLoadingMore" class="feed-loading">
-        Загружаем ещё статьи…
-      </div>
-
       <div class="load-more-actions" *ngIf="hasMoreArticles && !isLoadingMore">
         <button
           class="feed-clear-btn"
           type="button"
-          (click)="loadMoreArticles()">
+          (click)="loadArticles(false)">
           Загрузить ещё
         </button>
+      </div>
+
+      <div *ngIf="isLoadingMore" class="feed-loading">
+        Загружаем ещё статьи…
       </div>
     </section>
 
@@ -173,14 +159,8 @@
     <div
       *ngIf="!isLoading && articles.length === 0 && !hasActiveFilters()"
       class="feed-empty">
-      <h2>Непрочитанных статей пока нет</h2>
-      <p>Новые статьи появятся здесь после обновления RSS-каналов.</p>
-
-      <a
-        routerLink="/channels"
-        class="feed-action">
-        Перейти к каналам
-      </a>
+      <h2>В архиве пока нет статей</h2>
+      <p>Прочитанные статьи будут появляться здесь.</p>
     </div>
 
   </div>

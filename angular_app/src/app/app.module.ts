@@ -10,6 +10,8 @@ import { HeaderComponent } from './components/header/header.component';
 import { ContentComponent } from './components/content/content.component';
 import { AuthFormComponent } from './components/auth-form/auth-form.component';
 import { ChannelsComponent } from './channels/channels.component';
+import { ArchiveComponent } from './archive/archive.component';
+import { FavoritesComponent } from './favorites/favorites.component';
 
 import { AuthInterceptor } from './services/auth.interceptor';
 import { ApiService } from './services/api.service';
@@ -21,6 +23,8 @@ import { FooterComponent } from './components/footer/footer.component';
 const routes: Routes = [
   { path: '', component: ContentComponent },
   { path: 'content', component: ContentComponent },
+  { path: 'archive', component: ArchiveComponent },
+  { path: 'favorites', component: FavoritesComponent },
   { path: 'login', component: AuthFormComponent },
   { path: 'register', component: AuthFormComponent, data: { mode: 'register' } },
   { path: 'admin/users', component: AdminUsersComponent },
@@ -34,9 +38,12 @@ const routes: Routes = [
     AppComponent,
     HeaderComponent,
     ContentComponent,
+    ArchiveComponent,
+    FavoritesComponent,
     AuthFormComponent,
     ChannelsComponent,
     AdminUsersComponent,
+    AdminArticlesComponent,
     FooterComponent
   ],
   imports: [
@@ -57,4 +64,4 @@ const routes: Routes = [
   ],
   bootstrap: [AppComponent]
 })
-export class AppModule { }
+export class AppModule {}
