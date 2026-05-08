@@ -203,4 +203,12 @@ export class ApiService {
       `${this.apiUrl}/articles/${articleId}/favorite`
     );
   }
+
+  updateChannel(id: number, channel: CreateRSSChannelRequest): Observable<RSSChannel> {
+    return this.http.put<RSSChannel>(
+      `${this.apiUrl}/rss/${id}`,
+      channel
+    );
+  }
 }
+

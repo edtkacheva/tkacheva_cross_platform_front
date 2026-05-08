@@ -11,6 +11,7 @@ import {
 
 import { ApiService, ArticleFilterParams } from '../../services/api.service';
 import { Article, RSSChannel } from '../../models/types';
+import { AuthService } from '../../services/auth.service';
 
 type SortOrder = 'newest' | 'oldest';
 type PeriodFilter = 'all' | 'lastMonth' | 'lastYear' | 'previousYear';
@@ -37,6 +38,7 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   isChannelFilterOpen = false;
   sortOrder: SortOrder = 'newest';
   periodFilter: PeriodFilter = 'all';
+  isAdmin = false;
 
   private articleObserver?: IntersectionObserver;
   private loadingObserver?: IntersectionObserver;
@@ -46,9 +48,14 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('articleCard') articleCards!: QueryList<ElementRef<HTMLElement>>;
   @ViewChild('loadMoreTrigger') loadMoreTrigger?: ElementRef<HTMLElement>;
 
-  constructor(private apiService: ApiService) {}
+  constructor(
+    private apiService: ApiService,
+    private authService: AuthService
+  ) {}
 
   ngOnInit() {
+    this.isAdmin = this.authService.isUserAdmin();
+  
     this.loadUserSubscriptions();
     this.loadArticles(true);
     this.refreshRssInBackground();
@@ -75,6 +82,11 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadArticles(reset: boolean = false) {
+    if (this.isAdmin) {
+      this.loadAdminArticles();
+      return;
+    }
+  
     if (this.isLoadingMore) {
       return;
     }
@@ -148,13 +160,40 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadUserSubscriptions() {
-    this.apiService.getUserSubscriptions().subscribe({
-      next: (subscriptions) => {
-        this.userSubscriptions = subscriptions || [];
+    const request = this.isAdmin
+      ? this.apiService.getAllChannels()
+      : this.apiService.getUserSubscriptions();
+  
+    request.subscribe({
+      next: (channels) => {
+        this.userSubscriptions = channels || [];
       },
       error: (error) => {
-        console.error('Ошибка загрузки подписок:', error);
+        console.error('Ошибка загрузки каналов:', error);
         this.userSubscriptions = [];
+      }
+    });
+  }
+
+  loadAdminArticles() {
+    this.isLoading = true;
+    this.isLoadingMore = false;
+    this.hasMoreArticles = false;
+    this.errorMessage = '';
+  
+    this.apiService.getAllArticles().subscribe({
+      next: (articles) => {
+        this.articles = (articles || []).map(article => ({
+          ...article,
+          isRead: false,
+          isFavorite: false
+        }));
+  
+        this.isLoading = false;
+      },
+      error: (error) => {
+        this.errorMessage = 'Не удалось загрузить статьи';
+        this.isLoading = false;
       }
     });
   }
@@ -215,7 +254,9 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   applyFilters() {
-    this.loadArticles(true);
+    if (!this.isAdmin) {
+      this.loadArticles(true);
+    }
   }
 
   onSearchChanged() {
@@ -239,7 +280,76 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getFilteredArticles(): Article[] {
-    return this.articles;
+    if (!this.isAdmin) {
+      return this.articles;
+    }
+  
+    let result = [...this.articles];
+  
+    const query = this.searchQuery.trim().toLocaleLowerCase('ru-RU');
+  
+    if (query) {
+      result = result.filter(article => {
+        const title = (article.title || '').toLocaleLowerCase('ru-RU');
+        const description = (article.description || '').toLocaleLowerCase('ru-RU');
+        const channelName = (article.rssChannel?.name || '').toLocaleLowerCase('ru-RU');
+        const url = (article.url || '').toLocaleLowerCase('ru-RU');
+  
+        return (
+          title.includes(query) ||
+          description.includes(query) ||
+          channelName.includes(query) ||
+          url.includes(query)
+        );
+      });
+    }
+  
+    if (this.selectedChannelIds.length > 0) {
+      result = result.filter(article =>
+        this.selectedChannelIds.includes(article.rssChannelId)
+      );
+    }
+  
+    const now = new Date();
+  
+    if (this.periodFilter !== 'all') {
+      result = result.filter(article => {
+        const published = new Date(article.publishedAt);
+  
+        if (isNaN(published.getTime())) {
+          return false;
+        }
+  
+        if (this.periodFilter === 'lastMonth') {
+          const monthAgo = new Date();
+          monthAgo.setMonth(now.getMonth() - 1);
+          return published >= monthAgo;
+        }
+  
+        if (this.periodFilter === 'lastYear') {
+          const yearAgo = new Date();
+          yearAgo.setFullYear(now.getFullYear() - 1);
+          return published >= yearAgo;
+        }
+  
+        if (this.periodFilter === 'previousYear') {
+          return published.getFullYear() === now.getFullYear() - 1;
+        }
+  
+        return true;
+      });
+    }
+  
+    result.sort((a, b) => {
+      const dateA = new Date(a.publishedAt).getTime();
+      const dateB = new Date(b.publishedAt).getTime();
+  
+      return this.sortOrder === 'newest'
+        ? dateB - dateA
+        : dateA - dateB;
+    });
+  
+    return result;
   }
 
   hasActiveFilters(): boolean {
@@ -252,6 +362,10 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   observeLoadMoreTrigger() {
+    if (this.isAdmin) {
+      return;
+    }
+
     if (!this.loadMoreTrigger) {
       return;
     }
@@ -279,6 +393,10 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   observeArticleCards() {
+    if (this.isAdmin) {
+      return;
+    }
+
     this.articleObserver?.disconnect();
 
     this.articleObserver = new IntersectionObserver(entries => {
@@ -315,35 +433,43 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   markArticleAsRead(article: Article) {
-    if (article.isRead || this.markingReadIds.has(article.id)) {
+  if (this.isAdmin) {
+    return;
+  }
+
+  if (article.isRead || this.markingReadIds.has(article.id)) {
+    return;
+  }
+
+  this.markingReadIds.add(article.id);
+
+  this.apiService.markArticleAsRead(article.id).subscribe({
+    next: () => {
+      this.markingReadIds.delete(article.id);
+
+      this.articles = this.articles.map(a =>
+        a.id === article.id
+          ? { ...a, isRead: true }
+          : a
+      );
+
+      setTimeout(() => {
+        this.observeArticleCards();
+        this.observeLoadMoreTrigger();
+      });
+    },
+    error: (error) => {
+      console.error('Ошибка отметки статьи как прочитанной:', error);
+      this.markingReadIds.delete(article.id);
+    }
+  });
+}
+
+  toggleFavorite(article: Article) {
+    if (this.isAdmin) {
       return;
     }
 
-    this.markingReadIds.add(article.id);
-
-    this.apiService.markArticleAsRead(article.id).subscribe({
-      next: () => {
-        this.markingReadIds.delete(article.id);
-
-        this.articles = this.articles.map(a =>
-          a.id === article.id
-            ? { ...a, isRead: true }
-            : a
-        );
-
-        setTimeout(() => {
-          this.observeArticleCards();
-          this.observeLoadMoreTrigger();
-        });
-      },
-      error: (error) => {
-        console.error('Ошибка отметки статьи как прочитанной:', error);
-        this.markingReadIds.delete(article.id);
-      }
-    });
-  }
-
-  toggleFavorite(article: Article) {
     const shouldBeFavorite = !article.isFavorite;
 
     const request = shouldBeFavorite

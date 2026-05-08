@@ -141,3 +141,26 @@
     margin: 0 auto;
     padding: 24px;
   }
+
+  .subscription-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-width: 420px;
+  }
+  
+  .subscription-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #1e40af;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  
+  .muted-text {
+    color: #999;
+    font-size: 13px;
+  }

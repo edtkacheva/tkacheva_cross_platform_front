@@ -208,10 +208,17 @@
   gap: 32px;
 }
 
-.news-feed h2 {
+.news-feed > h2 {
   margin: 0;
   color: #1f2937;
   font-size: 24px;
+}
+
+.news-post .news-title {
+  font-size: 26px;
+  line-height: 1.25;
+  margin: 0 0 32px 0;
+  color: #1f2937;
 }
 
 .news-post {
@@ -251,7 +258,7 @@
 .news-title {
   font-size: 26px;
   line-height: 1.25;
-  margin-bottom: 18px;
+  margin-bottom: 5000px;
   color: #1f2937;
 }
 

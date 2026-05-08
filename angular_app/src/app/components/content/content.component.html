@@ -2,10 +2,16 @@
   <div class="feed-container">
 
     <header class="feed-header">
-      <h1 class="feed-title">Лента</h1>
+      <h1 class="feed-title">
+        {{ isAdmin ? 'Все статьи' : 'Лента' }}
+      </h1>
 
-      <p *ngIf="userSubscriptions.length > 0" class="feed-subtitle">
+      <p *ngIf="!isAdmin && userSubscriptions.length > 0" class="feed-subtitle">
         Вы подписаны на {{ userSubscriptions.length }} каналов
+      </p>
+      
+      <p *ngIf="isAdmin" class="feed-subtitle">
+        Общий список статей из всех RSS-каналов
       </p>
 
       <div class="filters-card">
@@ -88,7 +94,7 @@
     </div>
 
     <section *ngIf="!isLoading && getFilteredArticles().length > 0" class="news-feed">
-      <h2>Непрочитанные статьи</h2>
+      <h2>{{ isAdmin ? 'Все статьи' : 'Непрочитанные статьи' }}</h2>
 
       <div
         *ngFor="let article of getFilteredArticles(); trackBy: trackArticle"
@@ -97,7 +103,7 @@
 
         <article
           class="news-post"
-          [class.read-article-in-feed]="article.isRead">
+          [class.read-article-in-feed]="!isAdmin && article.isRead">
 
           <div class="news-meta">
             <span class="news-date">
@@ -119,6 +125,7 @@
 
           <div class="news-footer">
             <button
+              *ngIf="!isAdmin"
               class="favorite-btn"
               type="button"
               [class.active]="article.isFavorite"

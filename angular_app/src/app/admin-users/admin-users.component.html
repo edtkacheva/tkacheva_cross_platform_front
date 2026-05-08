@@ -35,7 +35,7 @@
                 <tr>
                   <th>ID</th>
                   <th>Имя пользователя</th>
-                  <th>Подписок</th>
+                  <th>Подписки</th>
                   <th>Действия</th>
                 </tr>
               </thead>
@@ -45,7 +45,17 @@
                     <td class="user-id">{{ user.id || '—' }}</td>
                     <td class="user-name">{{ user.userName }}</td>
                     <td class="user-subscriptions">
-                      {{ user.subscribedChannels?.length || 0 }}
+                      @if ((user.subscribedChannels?.length || 0) > 0) {
+                        <div class="subscription-list">
+                          @for (channel of user.subscribedChannels; track channel.id) {
+                            <span class="subscription-chip">
+                              {{ channel.name }}
+                            </span>
+                          }
+                        </div>
+                      } @else {
+                        <span class="muted-text">Нет подписок</span>
+                      }
                     </td>
                     <td class="user-actions">
                       <button

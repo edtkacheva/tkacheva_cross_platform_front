@@ -26,6 +26,13 @@ export class ChannelsComponent implements OnInit {
   isAdmin = false;
   showAddForm = false;
 
+  editingChannelId: number | null = null;
+
+  editChannel: CreateRSSChannelRequest = {
+    name: '',
+    url: ''
+  };
+
   constructor(
     private apiService: ApiService,
     private authService: AuthService
@@ -279,5 +286,67 @@ export class ChannelsComponent implements OnInit {
 
   hasSearchQuery(): boolean {
     return this.channelSearchQuery.trim().length > 0;
+  }
+
+  startEditChannel(channel: RSSChannel) {
+    if (!channel.id) {
+      this.errorMessage = 'Не удалось определить id канала';
+      return;
+    }
+  
+    this.editingChannelId = channel.id;
+  
+    this.editChannel = {
+      name: channel.name,
+      url: channel.url
+    };
+  
+    this.errorMessage = '';
+    this.successMessage = '';
+  }
+  
+  cancelEditChannel() {
+    this.editingChannelId = null;
+  
+    this.editChannel = {
+      name: '',
+      url: ''
+    };
+  }
+  
+  saveChannelChanges(channel: RSSChannel) {
+    if (!channel.id) {
+      this.errorMessage = 'Не удалось определить id канала';
+      return;
+    }
+  
+    const request: CreateRSSChannelRequest = {
+      name: this.editChannel.name.trim(),
+      url: this.editChannel.url.trim()
+    };
+  
+    if (!request.name || !request.url) {
+      this.errorMessage = 'Заполните название и RSS URL';
+      return;
+    }
+  
+    this.errorMessage = '';
+    this.successMessage = '';
+  
+    this.apiService.updateChannel(channel.id, request).subscribe({
+      next: () => {
+        this.successMessage = 'Канал обновлён';
+        this.cancelEditChannel();
+        this.loadData();
+      },
+      error: (error) => {
+        console.error('Ошибка редактирования канала:', error);
+  
+        this.errorMessage =
+          error?.error?.message ||
+          error?.error ||
+          'Не удалось обновить канал';
+      }
+    });
   }
 }

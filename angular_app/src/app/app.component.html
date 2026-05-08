@@ -18,17 +18,19 @@
               </a>
             </li>
 
-            <li class="nav-item">
-              <a class="nav-link" routerLink="/archive" routerLinkActive="active">
-                Архив
-              </a>
-            </li>
-
-            <li class="nav-item">
-              <a class="nav-link" routerLink="/favorites" routerLinkActive="active">
-                Избранное
-              </a>
-            </li>
+            @if (!isAdmin) {
+              <li class="nav-item">
+                <a class="nav-link" routerLink="/archive" routerLinkActive="active">
+                  Архив
+                </a>
+              </li>
+            
+              <li class="nav-item">
+                <a class="nav-link" routerLink="/favorites" routerLinkActive="active">
+                  Избранное
+                </a>
+              </li>
+            }
 
             <li class="nav-item">
               <a class="nav-link" routerLink="/channels" routerLinkActive="active">

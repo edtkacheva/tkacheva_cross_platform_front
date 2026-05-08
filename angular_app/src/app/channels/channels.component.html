@@ -211,24 +211,65 @@
         <div class="channels-grid">
           @for (channel of getFilteredAllChannels(); track channel.id) {
             <div class="channel-card admin-view">
-              <div class="channel-header">
-                <h4 class="channel-title">
-                  {{ channel.name }}
-                </h4>
-              </div>
-
-              <p class="channel-url">
-                {{ channel.url }}
-              </p>
-
-              <div class="channel-footer">
-                <button
-                  class="btn btn-danger"
-                  type="button"
-                  (click)="deleteChannel(channel)">
-                  Удалить
-                </button>
-              </div>
+              @if (editingChannelId === channel.id) {
+                <div class="form-group">
+                  <label>Название</label>
+                  <input
+                    class="form-input"
+                    type="text"
+                    [(ngModel)]="editChannel.name">
+                </div>
+            
+                <div class="form-group">
+                  <label>RSS URL</label>
+                  <input
+                    class="form-input"
+                    type="text"
+                    [(ngModel)]="editChannel.url">
+                </div>
+            
+                <div class="channel-footer">
+                  <button
+                    class="btn btn-primary"
+                    type="button"
+                    (click)="saveChannelChanges(channel)">
+                    Сохранить
+                  </button>
+            
+                  <button
+                    class="btn btn-outline"
+                    type="button"
+                    (click)="cancelEditChannel()">
+                    Отмена
+                  </button>
+                </div>
+              } @else {
+                <div class="channel-header">
+                  <h4 class="channel-title">
+                    {{ channel.name }}
+                  </h4>
+                </div>
+            
+                <p class="channel-url">
+                  {{ channel.url }}
+                </p>
+            
+                <div class="channel-footer">
+                  <button
+                    class="btn btn-outline"
+                    type="button"
+                    (click)="startEditChannel(channel)">
+                    Редактировать
+                  </button>
+            
+                  <button
+                    class="btn btn-danger"
+                    type="button"
+                    (click)="deleteChannel(channel)">
+                    Удалить
+                  </button>
+                </div>
+              }
             </div>
           }
         </div>
