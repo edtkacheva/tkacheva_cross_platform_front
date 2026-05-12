@@ -325,8 +325,10 @@ export class ChannelsComponent implements OnInit {
       url: this.editChannel.url.trim()
     };
   
-    if (!request.name || !request.url) {
-      this.errorMessage = 'Заполните название и RSS URL';
+    const validationError = this.getEditValidationError(channel.id, request);
+  
+    if (validationError) {
+      this.errorMessage = validationError;
       return;
     }
   
@@ -348,5 +350,65 @@ export class ChannelsComponent implements OnInit {
           'Не удалось обновить канал';
       }
     });
+  }
+
+  private normalizeForCompare(value: string | null | undefined): string {
+    return (value || '')
+      .trim()
+      .toLocaleLowerCase('ru-RU')
+      .replace(/\/+$/, '');
+  }
+  
+  private isValidHttpUrl(value: string): boolean {
+    try {
+      const url = new URL(value);
+  
+      return (
+        (url.protocol === 'http:' || url.protocol === 'https:') &&
+        !!url.hostname
+      );
+    } catch {
+      return false;
+    }
+  }
+  
+  private getEditValidationError(channelId: number, request: CreateRSSChannelRequest): string {
+    const name = request.name.trim();
+    const url = request.url.trim();
+  
+    if (!name) {
+      return 'Название канала не может быть пустым';
+    }
+  
+    if (!url) {
+      return 'RSS URL не может быть пустым';
+    }
+  
+    if (!this.isValidHttpUrl(url)) {
+      return 'Введите корректный RSS URL. Например: https://example.com/rss.xml';
+    }
+  
+    const normalizedName = this.normalizeForCompare(name);
+    const normalizedUrl = this.normalizeForCompare(url);
+  
+    const sameNameExists = this.allChannels.some(channel =>
+      channel.id !== channelId &&
+      this.normalizeForCompare(channel.name) === normalizedName
+    );
+  
+    if (sameNameExists) {
+      return 'Канал с таким названием уже существует';
+    }
+  
+    const sameUrlExists = this.allChannels.some(channel =>
+      channel.id !== channelId &&
+      this.normalizeForCompare(channel.url) === normalizedUrl
+    );
+  
+    if (sameUrlExists) {
+      return 'Канал с таким RSS URL уже существует';
+    }
+  
+    return '';
   }
 }

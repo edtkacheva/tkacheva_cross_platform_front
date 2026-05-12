@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { ApiService } from '../services/api.service';
 import { Article, RSSChannel } from '../models/types';
 
@@ -23,6 +23,15 @@ export class FavoritesComponent implements OnInit {
   isChannelFilterOpen = false;
   sortOrder: SortOrder = 'newest';
   periodFilter: PeriodFilter = 'all';
+
+  @HostListener('document:click', ['$event'])
+  closeChannelFilterOnOutsideClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+
+    if (!target.closest('.channel-multiselect')) {
+      this.isChannelFilterOpen = false;
+    }
+  }
 
   constructor(private apiService: ApiService) {}
 

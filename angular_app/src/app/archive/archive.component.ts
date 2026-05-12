@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { ApiService, ArticleFilterParams } from '../services/api.service';
 import { Article, RSSChannel } from '../models/types';
 
@@ -30,6 +30,15 @@ export class ArchiveComponent implements OnInit {
   periodFilter: PeriodFilter = 'all';
 
   private searchDebounceId?: ReturnType<typeof setTimeout>;
+
+  @HostListener('document:click', ['$event'])
+  closeChannelFilterOnOutsideClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+
+    if (!target.closest('.channel-multiselect')) {
+      this.isChannelFilterOpen = false;
+    }
+  }
 
   constructor(private apiService: ApiService) {}
 

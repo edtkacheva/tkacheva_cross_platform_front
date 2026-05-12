@@ -22,10 +22,11 @@ export class AdminUsersComponent implements OnInit {
 
   loadUsers() {
     this.isLoading = true;
+    this.errorMessage = '';
   
     this.apiService.getAllUsers().subscribe({
       next: (users) => {
-        this.users = users.filter(u => !u.isAdmin);
+        this.users = (users || []).filter(u => u.id !== 1);
         this.isLoading = false;
       },
       error: () => {
@@ -34,18 +35,48 @@ export class AdminUsersComponent implements OnInit {
       }
     });
   }
+
+  openSubscriptionsUserId: number | null = null;
+
+  toggleSubscriptions(userId: number) {
+    this.openSubscriptionsUserId =
+      this.openSubscriptionsUserId === userId ? null : userId;
+  }
+
+  isSubscriptionsOpen(userId: number): boolean {
+    return this.openSubscriptionsUserId === userId;
+  }
+
+  getVisibleSubscriptions(user: any) {
+    return (user.subscribedChannels || []).slice(0, 2);
+  }
   
 
-  deleteUser(username: string) {
-    if (!confirm(`Удалить пользователя "${username}"?`)) return;
+  deleteUser(user: User) {
+    if (!user.id) {
+      this.errorMessage = 'Не удалось определить id пользователя';
+      return;
+    }
   
-    this.apiService.deleteUser(username).subscribe({
+    if (!confirm(`Удалить пользователя "${user.userName}"?`)) {
+      return;
+    }
+  
+    this.errorMessage = '';
+    this.successMessage = '';
+  
+    this.apiService.deleteUser(user.id).subscribe({
       next: () => {
         this.successMessage = 'Пользователь удалён';
         this.loadUsers();
       },
-      error: () => {
-        this.loadUsers();
+      error: (error) => {
+        console.error('Ошибка удаления пользователя:', error);
+  
+        this.errorMessage =
+          error?.error?.message ||
+          error?.error ||
+          'Не удалось удалить пользователя';
       }
     });
   }

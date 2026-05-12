@@ -6,7 +6,8 @@ import {
   ViewChildren,
   ViewChild,
   ElementRef,
-  QueryList
+  QueryList,
+  HostListener
 } from '@angular/core';
 
 import { ApiService, ArticleFilterParams } from '../../services/api.service';
@@ -31,6 +32,7 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   errorMessage = '';
 
   pageSize = 10;
+  page = 1;
   hasMoreArticles = true;
 
   searchQuery = '';
@@ -43,10 +45,20 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   private articleObserver?: IntersectionObserver;
   private loadingObserver?: IntersectionObserver;
   private markingReadIds = new Set<number>();
+  private seenArticleIds = new Set<number>();
   private searchDebounceId?: ReturnType<typeof setTimeout>;
 
   @ViewChildren('articleCard') articleCards!: QueryList<ElementRef<HTMLElement>>;
   @ViewChild('loadMoreTrigger') loadMoreTrigger?: ElementRef<HTMLElement>;
+
+  @HostListener('document:click', ['$event'])
+  closeChannelFilterOnOutsideClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+
+    if (!target.closest('.channel-multiselect')) {
+      this.isChannelFilterOpen = false;
+    }
+  }
 
   constructor(
     private apiService: ApiService,
@@ -82,53 +94,59 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadArticles(reset: boolean = false) {
-    if (this.isAdmin) {
-      this.loadAdminArticles();
-      return;
-    }
-  
     if (this.isLoadingMore) {
       return;
     }
-
+  
     if (reset) {
+      this.page = 1;
       this.articles = [];
       this.hasMoreArticles = true;
       this.isLoading = true;
       this.errorMessage = '';
-
+  
       this.articleObserver?.disconnect();
       this.loadingObserver?.disconnect();
     } else {
       if (!this.hasMoreArticles) {
         return;
       }
-
+  
       this.isLoadingMore = true;
     }
-
-    const pageToLoad = 1;
-
-    this.apiService.getMyUnreadArticles(
-      pageToLoad,
-      this.pageSize,
-      this.getCurrentFilters()
-    ).subscribe({
+  
+    const request = this.isAdmin
+      ? this.apiService.getAllArticles(
+          this.page,
+          this.pageSize,
+          this.getCurrentFilters()
+        )
+      : this.apiService.getMyUnreadArticles(
+          this.page,
+          this.pageSize,
+          this.getCurrentFilters()
+        );
+  
+    request.subscribe({
       next: (articles) => {
         const loaded = articles || [];
-
+  
         const existingIds = new Set(this.articles.map(a => a.id));
         const uniqueLoaded = loaded.filter(a => !existingIds.has(a.id));
-
+  
         this.articles = reset
           ? loaded
           : [...this.articles, ...uniqueLoaded];
-
+  
         this.hasMoreArticles = loaded.length === this.pageSize;
-
+  
+        if (this.hasMoreArticles) {
+          this.page++;
+        }
+  
         this.isLoading = false;
         this.isLoadingMore = false;
-
+  
         setTimeout(() => {
           this.observeArticleCards();
           this.observeLoadMoreTrigger();
@@ -136,11 +154,22 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: (error) => {
         console.error('Ошибка загрузки ленты:', error);
-        this.errorMessage = 'Не удалось загрузить ленту';
+  
+        this.errorMessage = this.isAdmin
+          ? 'Не удалось загрузить статьи'
+          : 'Не удалось загрузить ленту';
+  
         this.isLoading = false;
         this.isLoadingMore = false;
       }
     });
+  }
+
+  private isNearPageBottom(): boolean {
+    const scrollPosition = window.scrollY + window.innerHeight;
+    const pageHeight = document.documentElement.scrollHeight;
+  
+    return pageHeight - scrollPosition < 120;
   }
 
   loadMoreArticles() {
@@ -254,9 +283,7 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   applyFilters() {
-    if (!this.isAdmin) {
-      this.loadArticles(true);
-    }
+    this.loadArticles(true);
   }
 
   onSearchChanged() {
@@ -280,76 +307,7 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   getFilteredArticles(): Article[] {
-    if (!this.isAdmin) {
-      return this.articles;
-    }
-  
-    let result = [...this.articles];
-  
-    const query = this.searchQuery.trim().toLocaleLowerCase('ru-RU');
-  
-    if (query) {
-      result = result.filter(article => {
-        const title = (article.title || '').toLocaleLowerCase('ru-RU');
-        const description = (article.description || '').toLocaleLowerCase('ru-RU');
-        const channelName = (article.rssChannel?.name || '').toLocaleLowerCase('ru-RU');
-        const url = (article.url || '').toLocaleLowerCase('ru-RU');
-  
-        return (
-          title.includes(query) ||
-          description.includes(query) ||
-          channelName.includes(query) ||
-          url.includes(query)
-        );
-      });
-    }
-  
-    if (this.selectedChannelIds.length > 0) {
-      result = result.filter(article =>
-        this.selectedChannelIds.includes(article.rssChannelId)
-      );
-    }
-  
-    const now = new Date();
-  
-    if (this.periodFilter !== 'all') {
-      result = result.filter(article => {
-        const published = new Date(article.publishedAt);
-  
-        if (isNaN(published.getTime())) {
-          return false;
-        }
-  
-        if (this.periodFilter === 'lastMonth') {
-          const monthAgo = new Date();
-          monthAgo.setMonth(now.getMonth() - 1);
-          return published >= monthAgo;
-        }
-  
-        if (this.periodFilter === 'lastYear') {
-          const yearAgo = new Date();
-          yearAgo.setFullYear(now.getFullYear() - 1);
-          return published >= yearAgo;
-        }
-  
-        if (this.periodFilter === 'previousYear') {
-          return published.getFullYear() === now.getFullYear() - 1;
-        }
-  
-        return true;
-      });
-    }
-  
-    result.sort((a, b) => {
-      const dateA = new Date(a.publishedAt).getTime();
-      const dateB = new Date(b.publishedAt).getTime();
-  
-      return this.sortOrder === 'newest'
-        ? dateB - dateA
-        : dateA - dateB;
-    });
-  
-    return result;
+    return this.articles;
   }
 
   hasActiveFilters(): boolean {
@@ -396,37 +354,53 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.isAdmin) {
       return;
     }
-
+  
     this.articleObserver?.disconnect();
-
+  
     this.articleObserver = new IntersectionObserver(entries => {
       for (const entry of entries) {
         const element = entry.target as HTMLElement;
         const articleId = Number(element.dataset['articleId']);
-
+  
         if (!articleId) {
           continue;
         }
-
+  
         const article = this.articles.find(a => a.id === articleId);
-
+  
         if (!article || article.isRead || this.markingReadIds.has(article.id)) {
           continue;
         }
-
-        const articleWasFullyScrolledPast =
+  
+        const articleIsVisibleEnough =
+          entry.isIntersecting &&
+          entry.intersectionRatio >= 0.55;
+  
+        if (articleIsVisibleEnough) {
+          this.seenArticleIds.add(article.id);
+  
+          if (this.isNearPageBottom()) {
+            this.markArticleAsRead(article);
+          }
+  
+          continue;
+        }
+  
+        const articleWasSeenBefore = this.seenArticleIds.has(article.id);
+  
+        const articleLeftViewport =
           !entry.isIntersecting &&
-          entry.boundingClientRect.bottom < 0;
-
-        if (articleWasFullyScrolledPast) {
+          articleWasSeenBefore;
+  
+        if (articleLeftViewport) {
           this.markArticleAsRead(article);
         }
       }
     }, {
       root: null,
-      threshold: 0
+      threshold: [0, 0.55]
     });
-
+  
     this.articleCards.forEach(card => {
       this.articleObserver?.observe(card.nativeElement);
     });
@@ -446,13 +420,14 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   this.apiService.markArticleAsRead(article.id).subscribe({
     next: () => {
       this.markingReadIds.delete(article.id);
-
+      this.seenArticleIds.delete(article.id);
+    
       this.articles = this.articles.map(a =>
         a.id === article.id
           ? { ...a, isRead: true }
           : a
       );
-
+    
       setTimeout(() => {
         this.observeArticleCards();
         this.observeLoadMoreTrigger();

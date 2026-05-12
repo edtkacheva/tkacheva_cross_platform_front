@@ -48,9 +48,9 @@ export class ApiService {
     return this.http.get<User[]>(`${this.apiUrl}/users`);
   }
 
-  deleteUser(username: string): Observable<any> {
+  deleteUser(userId: number): Observable<any> {
     return this.http.delete(
-      `${this.apiUrl}/users/${this.encode(username)}`
+      `${this.apiUrl}/users/${userId}`
     );
   }
 
@@ -96,8 +96,35 @@ export class ApiService {
     return this.http.post(`${this.apiUrl}/rss/refresh`, {});
   }
 
-  getAllArticles(): Observable<Article[]> {
-    return this.http.get<Article[]>(`${this.apiUrl}/articles`);
+  getAllArticles(
+    page: number = 1,
+    pageSize: number = 10,
+    filters?: ArticleFilterParams
+  ): Observable<Article[]> {
+    let params = new HttpParams()
+      .set('page', String(page))
+      .set('pageSize', String(pageSize));
+  
+    if (filters?.search?.trim()) {
+      params = params.set('search', filters.search.trim());
+    }
+  
+    if (filters?.channelIds && filters.channelIds.length > 0) {
+      params = params.set('channelIds', filters.channelIds.join(','));
+    }
+  
+    if (filters?.sortOrder) {
+      params = params.set('sortOrder', filters.sortOrder);
+    }
+  
+    if (filters?.periodFilter) {
+      params = params.set('periodFilter', filters.periodFilter);
+    }
+  
+    return this.http.get<Article[]>(
+      `${this.apiUrl}/articles`,
+      { params }
+    );
   }
 
   getArticle(title: string): Observable<Article> {
