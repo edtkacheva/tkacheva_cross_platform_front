@@ -18,7 +18,7 @@
         <input
           class="feed-search-input"
           type="text"
-          placeholder="Поиск по статьям, каналам или ссылкам…"
+          placeholder="Поиск по ключевым словам…"
           [(ngModel)]="searchQuery"
           (ngModelChange)="onSearchChanged()"
           (keyup.enter)="applyFilters()">
@@ -122,6 +122,25 @@
           <p *ngIf="article.description" class="news-description">
             {{ article.description }}
           </p>
+
+          <div
+            class="news-keywords"
+            *ngIf="getArticleKeywords(article).length > 0">
+            <span class="news-keywords-title">Ключевые слова:</span>
+
+            <span
+              class="keyword-chip"
+              *ngFor="let keyword of getArticleKeywords(article)"
+              [title]="keyword.text">
+              <span class="keyword-source">
+                {{ getKeywordSourceLabel(keyword.source) }}
+              </span>
+
+              <span class="keyword-text">
+                {{ keyword.text }}
+              </span>
+            </span>
+          </div>
 
           <div class="news-footer">
             <button

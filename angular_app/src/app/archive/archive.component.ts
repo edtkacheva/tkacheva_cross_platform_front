@@ -1,6 +1,6 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { ApiService, ArticleFilterParams } from '../services/api.service';
-import { Article, RSSChannel } from '../models/types';
+import { Article, ArticleKeyword, RSSChannel } from '../models/types';
 
 type SortOrder = 'newest' | 'oldest';
 type PeriodFilter = 'all' | 'lastMonth' | 'lastYear' | 'previousYear';
@@ -274,5 +274,27 @@ export class ArchiveComponent implements OnInit {
     });
 
     return `${time} ${day}`;
+  }
+
+  getArticleKeywords(article: Article): ArticleKeyword[] {
+    return (article.keywords || [])
+      .filter(keyword => !!keyword.text?.trim())
+      .sort((a, b) => this.getKeywordSourceOrder(a.source) - this.getKeywordSourceOrder(b.source));
+  }
+  
+  getKeywordSourceLabel(source: string | undefined): string {
+    if (source === 'Title') return 'Название';
+    if (source === 'Description') return 'Описание';
+    if (source === 'AI') return 'AI';
+  
+    return source || 'Ключ';
+  }
+  
+  private getKeywordSourceOrder(source: string | undefined): number {
+    if (source === 'AI') return 1;
+    if (source === 'Title') return 2;
+    if (source === 'Description') return 3;
+  
+    return 4;
   }
 }

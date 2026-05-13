@@ -1,6 +1,6 @@
 import { Component, OnInit, HostListener } from '@angular/core';
 import { ApiService } from '../services/api.service';
-import { Article, RSSChannel } from '../models/types';
+import { Article, ArticleKeyword, RSSChannel } from '../models/types';
 
 type SortOrder = 'newest' | 'oldest';
 type PeriodFilter = 'all' | 'lastMonth' | 'lastYear' | 'previousYear';
@@ -112,25 +112,47 @@ export class FavoritesComponent implements OnInit {
     return `Выбрано: ${this.selectedChannelIds.length}`;
   }
 
+  private articleMatchesKeywordSearch(article: Article, query: string): boolean {
+    const normalizedQuery = query.trim().toLocaleLowerCase('ru-RU');
+  
+    return (article.keywords || []).some(keyword =>
+      (keyword.text || '')
+        .toLocaleLowerCase('ru-RU')
+        .includes(normalizedQuery)
+    );
+  }
+  
+  getArticleKeywords(article: Article): ArticleKeyword[] {
+    return (article.keywords || [])
+      .filter(keyword => !!keyword.text?.trim())
+      .sort((a, b) => this.getKeywordSourceOrder(a.source) - this.getKeywordSourceOrder(b.source));
+  }
+  
+  getKeywordSourceLabel(source: string | undefined): string {
+    if (source === 'Title') return 'Название';
+    if (source === 'Description') return 'Описание';
+    if (source === 'AI') return 'AI';
+  
+    return source || 'Ключ';
+  }
+  
+  private getKeywordSourceOrder(source: string | undefined): number {
+    if (source === 'AI') return 1;
+    if (source === 'Title') return 2;
+    if (source === 'Description') return 3;
+  
+    return 4;
+  }
+
   getFilteredArticles(): Article[] {
     let result = [...this.articles];
 
     const query = this.searchQuery.trim().toLocaleLowerCase('ru-RU');
 
     if (query) {
-      result = result.filter(article => {
-        const title = (article.title || '').toLocaleLowerCase('ru-RU');
-        const description = (article.description || '').toLocaleLowerCase('ru-RU');
-        const channelName = (article.rssChannel?.name || '').toLocaleLowerCase('ru-RU');
-        const url = (article.url || '').toLocaleLowerCase('ru-RU');
-
-        return (
-          title.includes(query) ||
-          description.includes(query) ||
-          channelName.includes(query) ||
-          url.includes(query)
-        );
-      });
+      result = result.filter(article =>
+        this.articleMatchesKeywordSearch(article, query)
+      );
     }
 
     if (this.selectedChannelIds.length > 0) {

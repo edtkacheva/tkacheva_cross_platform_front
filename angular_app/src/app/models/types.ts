@@ -14,6 +14,15 @@ export interface RSSChannel {
   articles?: Article[];
 }
 
+export interface ArticleKeyword {
+  id?: number;
+  articleId?: number;
+  text: string;
+  source?: string;
+  weight?: number;
+  createdAt?: string;
+}
+
 export interface Article {
   id: number;
   title: string;
@@ -24,6 +33,7 @@ export interface Article {
   rssChannel?: RSSChannel | null;
   isRead: boolean;
   isFavorite?: boolean;
+  keywords?: ArticleKeyword[];
 }
 
 export interface LoginResponse {
