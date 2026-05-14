@@ -34,6 +34,7 @@ export interface Article {
   isRead: boolean;
   isFavorite?: boolean;
   keywords?: ArticleKeyword[];
+  categories?: ArticleCategory[];
 }
 
 export interface LoginResponse {
@@ -45,4 +46,27 @@ export interface LoginResponse {
 export interface CreateRSSChannelRequest {
   name: string;
   url: string;
+}
+
+export interface ArticleCategory {
+  id: number;
+  articleId?: number;
+  name: string;
+  normalizedName: string;
+}
+
+export interface ChannelCategoryOption {
+  name: string;
+  normalizedName: string;
+}
+
+export interface ChannelCategoryGroup {
+  channelId: number;
+  channelName: string;
+  categories: ChannelCategoryOption[];
+}
+
+export interface ChannelCategoryFilter {
+  channelId: number;
+  categoryNames: string[];
 }

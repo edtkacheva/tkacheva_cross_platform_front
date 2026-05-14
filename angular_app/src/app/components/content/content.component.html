@@ -9,7 +9,7 @@
       <p *ngIf="!isAdmin && userSubscriptions.length > 0" class="feed-subtitle">
         Вы подписаны на {{ userSubscriptions.length }} каналов
       </p>
-      
+
       <p *ngIf="isAdmin" class="feed-subtitle">
         Общий список статей из всех RSS-каналов
       </p>
@@ -23,37 +23,81 @@
           (ngModelChange)="onSearchChanged()"
           (keyup.enter)="applyFilters()">
 
-        <div class="channel-multiselect">
+        <div class="channel-multiselect topic-tree-filter">
           <button
             class="filter-select channel-filter-button"
             type="button"
-            (click)="isChannelFilterOpen = !isChannelFilterOpen">
+            (click)="toggleTopicFilter()">
             <span class="channel-filter-text">
-              {{ getChannelFilterLabel() }}
+              {{ getTopicFilterLabel() }}
             </span>
             <span class="select-arrow" aria-hidden="true"></span>
           </button>
 
           <div
-            class="channel-filter-menu"
-            *ngIf="isChannelFilterOpen">
-            <label
-              class="channel-filter-option"
-              *ngFor="let channel of getChannels()">
-              <input
-                type="checkbox"
-                [checked]="isChannelSelected(channel.id)"
-                (change)="toggleChannelFilter(channel.id)">
+            class="channel-filter-menu topic-tree-menu"
+            *ngIf="isTopicFilterOpen">
 
-              <span>{{ channel.name }}</span>
-            </label>
+            <div
+              class="channel-filter-option"
+              *ngIf="getChannelCategoryTree().length === 0">
+              Каналов и категорий пока нет
+            </div>
+
+            <div
+              class="topic-channel-block"
+              *ngFor="let channel of getChannelCategoryTree()">
+
+              <div class="topic-channel-row">
+                <button
+                  class="topic-expand-btn"
+                  type="button"
+                  (click)="toggleTopicChannelExpanded(channel.channelId, $event)">
+                  {{ isTopicChannelExpanded(channel.channelId) ? '▾' : '▸' }}
+                </button>
+
+                <label class="topic-channel-label">
+                  <input
+                    type="checkbox"
+                    [checked]="isTopicChannelSelected(channel.channelId)"
+                    (change)="toggleTopicChannel(channel.channelId)">
+
+                  <span>{{ channel.channelName }}</span>
+                </label>
+              </div>
+
+              <div
+                class="topic-category-list"
+                *ngIf="isTopicChannelExpanded(channel.channelId)">
+
+                <label
+                  class="topic-category-option"
+                  *ngFor="let category of channel.categories"
+                  [class.disabled]="!isTopicChannelSelected(channel.channelId)">
+
+                  <input
+                    type="checkbox"
+                    [disabled]="!isTopicChannelSelected(channel.channelId)"
+                    [checked]="isTopicCategorySelected(channel.channelId, category.normalizedName)"
+                    (change)="toggleTopicCategory(channel.channelId, category.normalizedName)">
+
+                  <span>{{ category.name }}</span>
+                </label>
+
+                <div
+                  class="topic-empty-categories"
+                  *ngIf="channel.categories.length === 0">
+                  У канала пока нет категорий
+                </div>
+              </div>
+            </div>
 
             <button
-              *ngIf="selectedChannelIds.length > 0"
+              *ngIf="selectedTopicChannelIds.length > 0"
               class="channel-filter-clear"
               type="button"
-              (click)="clearChannelFilter()">
-              Сбросить каналы
+              (click)="clearTopicFilter()">
+              Сбросить каналы и категории
             </button>
           </div>
         </div>
@@ -112,6 +156,19 @@
 
             <span *ngIf="article.rssChannel?.name" class="news-channel">
               {{ article.rssChannel?.name }}
+            </span>
+          </div>
+
+          <div
+            class="news-keywords"
+            *ngIf="getArticleCategories(article).length > 0">
+            <span
+              class="keyword-chip"
+              *ngFor="let category of getArticleCategories(article)"
+              [title]="category.name">
+              <span class="keyword-text">
+                {{ category.name }}
+              </span>
             </span>
           </div>
 
@@ -182,6 +239,85 @@
       </div>
     </section>
 
+    <section
+      *ngIf="!isAdmin && !isLoading && getRecommendedArticles().length > 0"
+      class="news-feed recommendations-section">
+
+      <h2>Рекомендуемые статьи</h2>
+
+      <div
+        *ngFor="let article of getRecommendedArticles(); trackBy: trackArticle">
+
+        <article class="news-post">
+          <div class="news-meta">
+            <span class="news-date">
+              {{ formatDate(article.publishedAt) }}
+            </span>
+
+            <span *ngIf="article.rssChannel?.name" class="news-channel">
+              {{ article.rssChannel?.name }}
+            </span>
+          </div>
+
+          <div
+            class="news-keywords"
+            *ngIf="getArticleCategories(article).length > 0">
+            <span
+              class="keyword-chip"
+              *ngFor="let category of getArticleCategories(article)"
+              [title]="category.name">
+              <span class="keyword-text">
+                {{ category.name }}
+              </span>
+            </span>
+          </div>
+
+          <h2 class="news-title">
+            {{ article.title }}
+          </h2>
+
+          <p *ngIf="article.description" class="news-description">
+            {{ article.description }}
+          </p>
+
+          <div
+            class="news-keywords"
+            *ngIf="getArticleKeywords(article).length > 0">
+            <span class="news-keywords-title">Ключевые слова:</span>
+
+            <span
+              class="keyword-chip"
+              *ngFor="let keyword of getArticleKeywords(article)"
+              [title]="keyword.text">
+              <span class="keyword-source">
+                {{ getKeywordSourceLabel(keyword.source) }}
+              </span>
+
+              <span class="keyword-text">
+                {{ keyword.text }}
+              </span>
+            </span>
+          </div>
+
+          <div class="news-footer">
+            <button
+              class="favorite-btn"
+              type="button"
+              (click)="subscribeToRecommendedChannel(article)">
+              Подписаться на канал
+            </button>
+
+            <a
+              class="read-btn"
+              href=""
+              (click)="openArticle($event, article)">
+              Читать статью
+            </a>
+          </div>
+        </article>
+      </div>
+    </section>
+
     <div
       *ngIf="!isLoading && articles.length === 0 && hasActiveFilters()"
       class="feed-empty">
@@ -197,7 +333,7 @@
     </div>
 
     <div
-      *ngIf="!isLoading && articles.length === 0 && !hasActiveFilters()"
+      *ngIf="!isLoading && articles.length === 0 && !hasActiveFilters() && getRecommendedArticles().length === 0"
       class="feed-empty">
       <h2>Непрочитанных статей пока нет</h2>
       <p>Новые статьи появятся здесь после обновления RSS-каналов.</p>

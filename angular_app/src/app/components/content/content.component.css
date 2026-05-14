@@ -30,14 +30,14 @@
 .filters-card {
   margin: 28px auto 0;
   width: 100%;
-  max-width: 1020px;
+  max-width: 1080px;
 
   display: grid;
   grid-template-columns:
-    minmax(320px, 2fr)
-    minmax(180px, 1fr)
-    minmax(180px, 1fr)
-    minmax(180px, 1fr)
+    minmax(260px, 2fr)
+    minmax(260px, 1.5fr)
+    minmax(160px, 1fr)
+    minmax(160px, 1fr)
     110px;
   gap: 12px;
   align-items: center;
@@ -448,4 +448,129 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.news-category {
+  color: #047857;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.recommendations-block {
+  max-width: 1020px;
+  margin: -20px auto 44px;
+  text-align: left;
+}
+
+.recommendations-title {
+  margin: 0 0 16px;
+  font-size: 24px;
+  color: #1f2937;
+  text-align: center;
+}
+
+.recommendations-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.recommendation-card {
+  background: #ffffff;
+  border: 1px solid #e2e4e8;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.recommendation-title {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+  color: #1f2937;
+}
+
+.topic-tree-menu {
+  min-width: 320px;
+  max-height: 360px;
+}
+
+.topic-channel-block {
+  border-bottom: 1px solid #f1f5f9;
+  padding: 4px 0;
+}
+
+.topic-channel-block:last-child {
+  border-bottom: none;
+}
+
+.topic-channel-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.topic-expand-btn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.topic-channel-label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.topic-channel-label:hover {
+  background: #f3f4f6;
+}
+
+.topic-category-list {
+  margin-left: 34px;
+  padding: 4px 0 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.topic-category-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #374151;
+}
+
+.topic-category-option:hover {
+  background: #f8fafc;
+}
+
+.topic-category-option.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.topic-empty-categories {
+  padding: 6px 8px;
+  color: #9ca3af;
+  font-size: 13px;
 }

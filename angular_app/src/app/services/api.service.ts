@@ -6,12 +6,36 @@ import {
   RSSChannel,
   Article,
   LoginResponse,
+  ArticleCategory,
   CreateRSSChannelRequest
 } from '../models/types';
 
 export interface ArticleFilterParams {
   search?: string;
-  channelIds?: number[];
+  channelCategoryFilters?: ChannelCategoryFilter[];
+  sortOrder?: 'newest' | 'oldest';
+  periodFilter?: 'all' | 'lastMonth' | 'lastYear' | 'previousYear';
+}
+
+export interface ChannelCategoryFilter {
+  channelId: number;
+  categoryNames: string[];
+}
+
+export interface ChannelCategoryOption {
+  name: string;
+  normalizedName: string;
+}
+
+export interface ChannelCategoryGroup {
+  channelId: number;
+  channelName: string;
+  categories: ChannelCategoryOption[];
+}
+
+export interface ArticleFilterParams {
+  search?: string;
+  channelCategoryFilters?: ChannelCategoryFilter[];
   sortOrder?: 'newest' | 'oldest';
   periodFilter?: 'all' | 'lastMonth' | 'lastYear' | 'previousYear';
 }
@@ -37,6 +61,12 @@ export class ApiService {
 
   register(user: User): Observable<User> {
     return this.http.post<User>(`${this.apiUrl}/users`, user);
+  }
+
+  getChannelCategoryTree(): Observable<ChannelCategoryGroup[]> {
+    return this.http.get<ChannelCategoryGroup[]>(
+      `${this.apiUrl}/articles/category-tree`
+    );
   }
 
   getCurrentUser(): Observable<User> {
@@ -109,8 +139,11 @@ export class ApiService {
       params = params.set('search', filters.search.trim());
     }
   
-    if (filters?.channelIds && filters.channelIds.length > 0) {
-      params = params.set('channelIds', filters.channelIds.join(','));
+    if (filters?.channelCategoryFilters && filters.channelCategoryFilters.length > 0) {
+      params = params.set(
+        'channelCategoryFilters',
+        JSON.stringify(filters.channelCategoryFilters)
+      );
     }
   
     if (filters?.sortOrder) {
@@ -164,8 +197,11 @@ export class ApiService {
       params = params.set('search', filters.search.trim());
     }
 
-    if (filters?.channelIds && filters.channelIds.length > 0) {
-      params = params.set('channelIds', filters.channelIds.join(','));
+    if (filters?.channelCategoryFilters && filters.channelCategoryFilters.length > 0) {
+      params = params.set(
+        'channelCategoryFilters',
+        JSON.stringify(filters.channelCategoryFilters)
+      );
     }
 
     if (filters?.sortOrder) {
@@ -235,6 +271,18 @@ export class ApiService {
     return this.http.put<RSSChannel>(
       `${this.apiUrl}/rss/${id}`,
       channel
+    );
+  }
+
+  getCategories(): Observable<ArticleCategory[]> {
+    return this.http.get<ArticleCategory[]>(
+      `${this.apiUrl}/articles/categories`
+    );
+  }
+  
+  getRecommendations(): Observable<Article[]> {
+    return this.http.get<Article[]>(
+      `${this.apiUrl}/articles/me/recommendations`
     );
   }
 }

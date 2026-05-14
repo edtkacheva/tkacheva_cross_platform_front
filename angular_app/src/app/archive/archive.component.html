@@ -17,37 +17,81 @@
           (ngModelChange)="onSearchChanged()"
           (keyup.enter)="applyFilters()">
 
-        <div class="channel-multiselect">
+        <div class="channel-multiselect topic-tree-filter">
           <button
             class="filter-select channel-filter-button"
             type="button"
-            (click)="isChannelFilterOpen = !isChannelFilterOpen">
+            (click)="toggleTopicFilter()">
             <span class="channel-filter-text">
-              {{ getChannelFilterLabel() }}
+              {{ getTopicFilterLabel() }}
             </span>
             <span class="select-arrow" aria-hidden="true"></span>
           </button>
 
           <div
-            class="channel-filter-menu"
-            *ngIf="isChannelFilterOpen">
-            <label
-              class="channel-filter-option"
-              *ngFor="let channel of getChannels()">
-              <input
-                type="checkbox"
-                [checked]="isChannelSelected(channel.id)"
-                (change)="toggleChannelFilter(channel.id)">
+            class="channel-filter-menu topic-tree-menu"
+            *ngIf="isTopicFilterOpen">
 
-              <span>{{ channel.name }}</span>
-            </label>
+            <div
+              class="channel-filter-option"
+              *ngIf="getChannelCategoryTree().length === 0">
+              Каналов и категорий пока нет
+            </div>
+
+            <div
+              class="topic-channel-block"
+              *ngFor="let channel of getChannelCategoryTree()">
+
+              <div class="topic-channel-row">
+                <button
+                  class="topic-expand-btn"
+                  type="button"
+                  (click)="toggleTopicChannelExpanded(channel.channelId, $event)">
+                  {{ isTopicChannelExpanded(channel.channelId) ? '▾' : '▸' }}
+                </button>
+
+                <label class="topic-channel-label">
+                  <input
+                    type="checkbox"
+                    [checked]="isTopicChannelSelected(channel.channelId)"
+                    (change)="toggleTopicChannel(channel.channelId)">
+
+                  <span>{{ channel.channelName }}</span>
+                </label>
+              </div>
+
+              <div
+                class="topic-category-list"
+                *ngIf="isTopicChannelExpanded(channel.channelId)">
+
+                <label
+                  class="topic-category-option"
+                  *ngFor="let category of channel.categories"
+                  [class.disabled]="!isTopicChannelSelected(channel.channelId)">
+
+                  <input
+                    type="checkbox"
+                    [disabled]="!isTopicChannelSelected(channel.channelId)"
+                    [checked]="isTopicCategorySelected(channel.channelId, category.normalizedName)"
+                    (change)="toggleTopicCategory(channel.channelId, category.normalizedName)">
+
+                  <span>{{ category.name }}</span>
+                </label>
+
+                <div
+                  class="topic-empty-categories"
+                  *ngIf="channel.categories.length === 0">
+                  У канала пока нет категорий
+                </div>
+              </div>
+            </div>
 
             <button
-              *ngIf="selectedChannelIds.length > 0"
+              *ngIf="selectedTopicChannelIds.length > 0"
               class="channel-filter-clear"
               type="button"
-              (click)="clearChannelFilter()">
-              Сбросить каналы
+              (click)="clearTopicFilter()">
+              Сбросить каналы и категории
             </button>
           </div>
         </div>
@@ -98,6 +142,19 @@
 
             <span *ngIf="article.rssChannel?.name" class="news-channel">
               {{ article.rssChannel?.name }}
+            </span>
+          </div>
+
+          <div
+            class="news-keywords"
+            *ngIf="getArticleCategories(article).length > 0">
+            <span
+              class="keyword-chip"
+              *ngFor="let category of getArticleCategories(article)"
+              [title]="category.name">
+              <span class="keyword-text">
+                {{ category.name }}
+              </span>
             </span>
           </div>
 

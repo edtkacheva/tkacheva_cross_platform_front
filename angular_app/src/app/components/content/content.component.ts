@@ -17,6 +17,34 @@ import { AuthService } from '../../services/auth.service';
 type SortOrder = 'newest' | 'oldest';
 type PeriodFilter = 'all' | 'lastMonth' | 'lastYear' | 'previousYear';
 
+interface ArticleCategory {
+  id?: number;
+  articleId?: number;
+  name: string;
+  normalizedName?: string;
+}
+
+interface ChannelCategoryOption {
+  name: string;
+  normalizedName: string;
+}
+
+interface ChannelCategoryGroup {
+  channelId: number;
+  channelName: string;
+  categories: ChannelCategoryOption[];
+}
+
+interface ChannelCategoryFilter {
+  channelId: number;
+  categoryNames: string[];
+}
+
+interface SelectedTopicCategory {
+  channelId: number;
+  categoryName: string;
+}
+
 @Component({
   selector: 'app-content',
   templateUrl: './content.component.html',
@@ -27,6 +55,12 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   articles: Article[] = [];
   userSubscriptions: RSSChannel[] = [];
 
+  channelCategoryTree: ChannelCategoryGroup[] = [];
+  isTopicFilterOpen = false;
+  selectedTopicChannelIds: number[] = [];
+  selectedTopicCategories: SelectedTopicCategory[] = [];
+  expandedTopicChannelIds: number[] = [];
+
   isLoading = false;
   isLoadingMore = false;
   errorMessage = '';
@@ -36,11 +70,12 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   hasMoreArticles = true;
 
   searchQuery = '';
-  selectedChannelIds: number[] = [];
-  isChannelFilterOpen = false;
   sortOrder: SortOrder = 'newest';
   periodFilter: PeriodFilter = 'all';
   isAdmin = false;
+
+  recommendations: Article[] = [];
+  isRecommendationsLoading = false;
 
   private articleObserver?: IntersectionObserver;
   private loadingObserver?: IntersectionObserver;
@@ -51,15 +86,6 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChildren('articleCard') articleCards!: QueryList<ElementRef<HTMLElement>>;
   @ViewChild('loadMoreTrigger') loadMoreTrigger?: ElementRef<HTMLElement>;
 
-  @HostListener('document:click', ['$event'])
-  closeChannelFilterOnOutsideClick(event: MouseEvent) {
-    const target = event.target as HTMLElement;
-
-    if (!target.closest('.channel-multiselect')) {
-      this.isChannelFilterOpen = false;
-    }
-  }
-
   constructor(
     private apiService: ApiService,
     private authService: AuthService
@@ -67,10 +93,15 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.isAdmin = this.authService.isUserAdmin();
-  
+
     this.loadUserSubscriptions();
+    this.loadChannelCategoryTree();
     this.loadArticles(true);
     this.refreshRssInBackground();
+
+    if (!this.isAdmin) {
+      this.loadRecommendations();
+    }
   }
 
   ngAfterViewInit() {
@@ -93,28 +124,37 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
+  @HostListener('document:click', ['$event'])
+  closeFiltersOnOutsideClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+
+    if (!target.closest('.topic-tree-filter')) {
+      this.isTopicFilterOpen = false;
+    }
+  }
+
   loadArticles(reset: boolean = false) {
     if (this.isLoadingMore) {
       return;
     }
-  
+
     if (reset) {
       this.page = 1;
       this.articles = [];
       this.hasMoreArticles = true;
       this.isLoading = true;
       this.errorMessage = '';
-  
+
       this.articleObserver?.disconnect();
       this.loadingObserver?.disconnect();
     } else {
       if (!this.hasMoreArticles) {
         return;
       }
-  
+
       this.isLoadingMore = true;
     }
-  
+
     const request = this.isAdmin
       ? this.apiService.getAllArticles(
           this.page,
@@ -126,27 +166,27 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
           this.pageSize,
           this.getCurrentFilters()
         );
-  
+
     request.subscribe({
       next: (articles) => {
         const loaded = articles || [];
-  
+
         const existingIds = new Set(this.articles.map(a => a.id));
         const uniqueLoaded = loaded.filter(a => !existingIds.has(a.id));
-  
+
         this.articles = reset
           ? loaded
           : [...this.articles, ...uniqueLoaded];
-  
+
         this.hasMoreArticles = loaded.length === this.pageSize;
-  
+
         if (this.hasMoreArticles) {
           this.page++;
         }
-  
+
         this.isLoading = false;
         this.isLoadingMore = false;
-  
+
         setTimeout(() => {
           this.observeArticleCards();
           this.observeLoadMoreTrigger();
@@ -154,22 +194,15 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
       },
       error: (error) => {
         console.error('Ошибка загрузки ленты:', error);
-  
+
         this.errorMessage = this.isAdmin
           ? 'Не удалось загрузить статьи'
           : 'Не удалось загрузить ленту';
-  
+
         this.isLoading = false;
         this.isLoadingMore = false;
       }
     });
-  }
-
-  private isNearPageBottom(): boolean {
-    const scrollPosition = window.scrollY + window.innerHeight;
-    const pageHeight = document.documentElement.scrollHeight;
-  
-    return pageHeight - scrollPosition < 120;
   }
 
   loadMoreArticles() {
@@ -181,6 +214,10 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
       next: () => {
         this.loadArticles(true);
         this.loadUserSubscriptions();
+        this.loadChannelCategoryTree();
+        if (!this.isAdmin) {
+          this.loadRecommendations();
+        }
       },
       error: (error) => {
         console.error('Ошибка фонового обновления RSS:', error);
@@ -188,11 +225,58 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
+  loadRecommendations() {
+    if (this.isAdmin) {
+      return;
+    }
+  
+    this.isRecommendationsLoading = true;
+  
+    this.apiService.getRecommendations().subscribe({
+      next: (articles) => {
+        this.recommendations = articles || [];
+        this.isRecommendationsLoading = false;
+      },
+      error: (error) => {
+        console.error('Ошибка загрузки рекомендаций:', error);
+        this.recommendations = [];
+        this.isRecommendationsLoading = false;
+      }
+    });
+  }
+  
+  subscribeToRecommendedChannel(article: Article) {
+    if (!article.rssChannelId) {
+      this.errorMessage = 'Не удалось определить канал статьи';
+      return;
+    }
+  
+    this.apiService.subscribe(article.rssChannelId).subscribe({
+      next: () => {
+        this.loadUserSubscriptions();
+        this.loadChannelCategoryTree();
+        this.loadArticles(true);
+        this.loadRecommendations();
+      },
+      error: (error) => {
+        console.error('Ошибка подписки на рекомендованный канал:', error);
+        this.errorMessage =
+          error?.error?.message ||
+          error?.error ||
+          'Не удалось подписаться на канал';
+      }
+    });
+  }
+  
+  getRecommendedArticles(): Article[] {
+    return this.recommendations;
+  }
+
   loadUserSubscriptions() {
     const request = this.isAdmin
       ? this.apiService.getAllChannels()
       : this.apiService.getUserSubscriptions();
-  
+
     request.subscribe({
       next: (channels) => {
         this.userSubscriptions = channels || [];
@@ -204,82 +288,175 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
     });
   }
 
-  loadAdminArticles() {
-    this.isLoading = true;
-    this.isLoadingMore = false;
-    this.hasMoreArticles = false;
-    this.errorMessage = '';
-  
-    this.apiService.getAllArticles().subscribe({
-      next: (articles) => {
-        this.articles = (articles || []).map(article => ({
-          ...article,
-          isRead: false,
-          isFavorite: false
-        }));
-  
-        this.isLoading = false;
+  loadChannelCategoryTree() {
+    const api = this.apiService as any;
+
+    if (typeof api.getChannelCategoryTree !== 'function') {
+      console.error('В ApiService не найден метод getChannelCategoryTree().');
+      this.channelCategoryTree = [];
+      return;
+    }
+
+    api.getChannelCategoryTree().subscribe({
+      next: (tree: ChannelCategoryGroup[]) => {
+        this.channelCategoryTree = (tree || [])
+          .map(group => ({
+            channelId: group.channelId,
+            channelName: group.channelName,
+            categories: (group.categories || [])
+              .filter(category => !!category.name?.trim())
+              .map(category => ({
+                name: category.name,
+                normalizedName: this.normalizeCategoryName(
+                  category.normalizedName || category.name
+                )
+              }))
+              .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+          }))
+          .sort((a, b) => a.channelName.localeCompare(b.channelName, 'ru'));
       },
-      error: (error) => {
-        this.errorMessage = 'Не удалось загрузить статьи';
-        this.isLoading = false;
+      error: (error: any) => {
+        console.error('Ошибка загрузки дерева каналов и категорий:', error);
+        this.channelCategoryTree = [];
       }
     });
   }
 
-  getChannels(): RSSChannel[] {
-    return [...this.userSubscriptions]
-      .filter(channel => channel.id !== undefined && channel.id !== null)
-      .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  getChannelCategoryTree(): ChannelCategoryGroup[] {
+    return [...this.channelCategoryTree]
+      .sort((a, b) => a.channelName.localeCompare(b.channelName, 'ru'));
   }
 
-  toggleChannelFilter(channelId: number | undefined) {
-    if (!channelId) {
+  toggleTopicFilter() {
+    this.isTopicFilterOpen = !this.isTopicFilterOpen;
+  }
+
+  toggleTopicChannel(channelId: number) {
+    if (this.isTopicChannelSelected(channelId)) {
+      this.selectedTopicChannelIds = this.selectedTopicChannelIds
+        .filter(id => id !== channelId);
+
+      this.selectedTopicCategories = this.selectedTopicCategories
+        .filter(item => item.channelId !== channelId);
+    } else {
+      this.selectedTopicChannelIds = [
+        ...this.selectedTopicChannelIds,
+        channelId
+      ];
+
+      if (!this.isTopicChannelExpanded(channelId)) {
+        this.expandedTopicChannelIds = [
+          ...this.expandedTopicChannelIds,
+          channelId
+        ];
+      }
+    }
+
+    this.applyFilters();
+  }
+
+  isTopicChannelSelected(channelId: number): boolean {
+    return this.selectedTopicChannelIds.includes(channelId);
+  }
+
+  toggleTopicChannelExpanded(channelId: number, event: Event) {
+    event.stopPropagation();
+
+    if (this.isTopicChannelExpanded(channelId)) {
+      this.expandedTopicChannelIds = this.expandedTopicChannelIds
+        .filter(id => id !== channelId);
+    } else {
+      this.expandedTopicChannelIds = [
+        ...this.expandedTopicChannelIds,
+        channelId
+      ];
+    }
+  }
+
+  isTopicChannelExpanded(channelId: number): boolean {
+    return this.expandedTopicChannelIds.includes(channelId);
+  }
+
+  toggleTopicCategory(channelId: number, categoryName: string) {
+    if (!this.isTopicChannelSelected(channelId)) {
       return;
     }
 
-    if (this.selectedChannelIds.includes(channelId)) {
-      this.selectedChannelIds = this.selectedChannelIds.filter(id => id !== channelId);
+    const normalizedCategoryName = this.normalizeCategoryName(categoryName);
+
+    if (!normalizedCategoryName) {
+      return;
+    }
+
+    const exists = this.selectedTopicCategories.some(item =>
+      item.channelId === channelId &&
+      item.categoryName === normalizedCategoryName
+    );
+
+    if (exists) {
+      this.selectedTopicCategories = this.selectedTopicCategories.filter(item =>
+        !(item.channelId === channelId && item.categoryName === normalizedCategoryName)
+      );
     } else {
-      this.selectedChannelIds = [...this.selectedChannelIds, channelId];
+      this.selectedTopicCategories = [
+        ...this.selectedTopicCategories,
+        {
+          channelId,
+          categoryName: normalizedCategoryName
+        }
+      ];
     }
 
     this.applyFilters();
   }
 
-  isChannelSelected(channelId: number | undefined): boolean {
-    if (!channelId) {
-      return false;
-    }
+  isTopicCategorySelected(channelId: number, categoryName: string): boolean {
+    const normalizedCategoryName = this.normalizeCategoryName(categoryName);
 
-    return this.selectedChannelIds.includes(channelId);
+    return this.selectedTopicCategories.some(item =>
+      item.channelId === channelId &&
+      item.categoryName === normalizedCategoryName
+    );
   }
 
-  clearChannelFilter() {
-    this.selectedChannelIds = [];
+  getTopicFilterLabel(): string {
+    if (this.selectedTopicChannelIds.length === 0) {
+      return 'Все каналы и категории';
+    }
+
+    const selectedCategoriesCount = this.selectedTopicCategories.length;
+
+    if (this.selectedTopicChannelIds.length === 1 && selectedCategoriesCount === 0) {
+      const channel = this.channelCategoryTree.find(c =>
+        c.channelId === this.selectedTopicChannelIds[0]
+      );
+
+      return channel?.channelName || '1 канал';
+    }
+
+    if (selectedCategoriesCount > 0) {
+      return `Каналы: ${this.selectedTopicChannelIds.length}, категории: ${selectedCategoriesCount}`;
+    }
+
+    return `Каналы: ${this.selectedTopicChannelIds.length}`;
+  }
+
+  clearTopicFilter() {
+    this.selectedTopicChannelIds = [];
+    this.selectedTopicCategories = [];
+    this.expandedTopicChannelIds = [];
+    this.isTopicFilterOpen = false;
+
     this.applyFilters();
-  }
-
-  getChannelFilterLabel(): string {
-    if (this.selectedChannelIds.length === 0) {
-      return 'Все каналы';
-    }
-
-    if (this.selectedChannelIds.length === 1) {
-      const channel = this.userSubscriptions.find(c => c.id === this.selectedChannelIds[0]);
-      return channel?.name || '1 канал';
-    }
-
-    return `Выбрано: ${this.selectedChannelIds.length}`;
   }
 
   getCurrentFilters(): ArticleFilterParams {
     return {
       search: this.searchQuery,
-      channelIds: this.selectedChannelIds,
+      channelCategoryFilters: this.buildChannelCategoryFilters(),
       sortOrder: this.sortOrder,
       periodFilter: this.periodFilter
-    };
+    } as ArticleFilterParams;
   }
 
   applyFilters() {
@@ -298,8 +475,12 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
 
   clearFilters() {
     this.searchQuery = '';
-    this.selectedChannelIds = [];
-    this.isChannelFilterOpen = false;
+
+    this.selectedTopicChannelIds = [];
+    this.selectedTopicCategories = [];
+    this.expandedTopicChannelIds = [];
+    this.isTopicFilterOpen = false;
+
     this.sortOrder = 'newest';
     this.periodFilter = 'all';
 
@@ -313,7 +494,7 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
   hasActiveFilters(): boolean {
     return (
       this.searchQuery.trim().length > 0 ||
-      this.selectedChannelIds.length > 0 ||
+      this.selectedTopicChannelIds.length > 0 ||
       this.sortOrder !== 'newest' ||
       this.periodFilter !== 'all'
     );
@@ -354,44 +535,44 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
     if (this.isAdmin) {
       return;
     }
-  
+
     this.articleObserver?.disconnect();
-  
+
     this.articleObserver = new IntersectionObserver(entries => {
       for (const entry of entries) {
         const element = entry.target as HTMLElement;
         const articleId = Number(element.dataset['articleId']);
-  
+
         if (!articleId) {
           continue;
         }
-  
+
         const article = this.articles.find(a => a.id === articleId);
-  
+
         if (!article || article.isRead || this.markingReadIds.has(article.id)) {
           continue;
         }
-  
+
         const articleIsVisibleEnough =
           entry.isIntersecting &&
           entry.intersectionRatio >= 0.55;
-  
+
         if (articleIsVisibleEnough) {
           this.seenArticleIds.add(article.id);
-  
+
           if (this.isNearPageBottom()) {
             this.markArticleAsRead(article);
           }
-  
+
           continue;
         }
-  
+
         const articleWasSeenBefore = this.seenArticleIds.has(article.id);
-  
+
         const articleLeftViewport =
           !entry.isIntersecting &&
           articleWasSeenBefore;
-  
+
         if (articleLeftViewport) {
           this.markArticleAsRead(article);
         }
@@ -400,45 +581,45 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
       root: null,
       threshold: [0, 0.55]
     });
-  
+
     this.articleCards.forEach(card => {
       this.articleObserver?.observe(card.nativeElement);
     });
   }
 
   markArticleAsRead(article: Article) {
-  if (this.isAdmin) {
-    return;
-  }
-
-  if (article.isRead || this.markingReadIds.has(article.id)) {
-    return;
-  }
-
-  this.markingReadIds.add(article.id);
-
-  this.apiService.markArticleAsRead(article.id).subscribe({
-    next: () => {
-      this.markingReadIds.delete(article.id);
-      this.seenArticleIds.delete(article.id);
-    
-      this.articles = this.articles.map(a =>
-        a.id === article.id
-          ? { ...a, isRead: true }
-          : a
-      );
-    
-      setTimeout(() => {
-        this.observeArticleCards();
-        this.observeLoadMoreTrigger();
-      });
-    },
-    error: (error) => {
-      console.error('Ошибка отметки статьи как прочитанной:', error);
-      this.markingReadIds.delete(article.id);
+    if (this.isAdmin) {
+      return;
     }
-  });
-}
+
+    if (article.isRead || this.markingReadIds.has(article.id)) {
+      return;
+    }
+
+    this.markingReadIds.add(article.id);
+
+    this.apiService.markArticleAsRead(article.id).subscribe({
+      next: () => {
+        this.markingReadIds.delete(article.id);
+        this.seenArticleIds.delete(article.id);
+
+        this.articles = this.articles.map(a =>
+          a.id === article.id
+            ? { ...a, isRead: true }
+            : a
+        );
+
+        setTimeout(() => {
+          this.observeArticleCards();
+          this.observeLoadMoreTrigger();
+        });
+      },
+      error: (error) => {
+        console.error('Ошибка отметки статьи как прочитанной:', error);
+        this.markingReadIds.delete(article.id);
+      }
+    });
+  }
 
   toggleFavorite(article: Article) {
     if (this.isAdmin) {
@@ -515,20 +696,53 @@ export class ContentComponent implements OnInit, AfterViewInit, OnDestroy {
       .filter(keyword => !!keyword.text?.trim())
       .sort((a, b) => this.getKeywordSourceOrder(a.source) - this.getKeywordSourceOrder(b.source));
   }
-  
+
+  getArticleCategories(article: Article): ArticleCategory[] {
+    const typedArticle = article as Article & { categories?: ArticleCategory[] };
+
+    return (typedArticle.categories || [])
+      .filter(category => !!category.name?.trim());
+  }
+
   getKeywordSourceLabel(source: string | undefined): string {
     if (source === 'Title') return 'Название';
     if (source === 'Description') return 'Описание';
     if (source === 'AI') return 'AI';
-  
+
     return source || 'Ключ';
   }
-  
+
   private getKeywordSourceOrder(source: string | undefined): number {
     if (source === 'AI') return 1;
     if (source === 'Title') return 2;
     if (source === 'Description') return 3;
-  
+
     return 4;
+  }
+
+  private isNearPageBottom(): boolean {
+    const scrollPosition = window.scrollY + window.innerHeight;
+    const pageHeight = document.documentElement.scrollHeight;
+
+    return pageHeight - scrollPosition < 120;
+  }
+
+  private buildChannelCategoryFilters(): ChannelCategoryFilter[] {
+    return this.selectedTopicChannelIds.map(channelId => {
+      const categoryNames = this.selectedTopicCategories
+        .filter(item => item.channelId === channelId)
+        .map(item => item.categoryName);
+
+      return {
+        channelId,
+        categoryNames
+      };
+    });
+  }
+
+  private normalizeCategoryName(value: string | null | undefined): string {
+    return (value || '')
+      .trim()
+      .toLocaleLowerCase('ru-RU');
   }
 }

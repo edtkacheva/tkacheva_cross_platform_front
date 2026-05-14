@@ -1,9 +1,26 @@
-import { Component, OnInit, HostListener } from '@angular/core';
-import { ApiService, ArticleFilterParams } from '../services/api.service';
-import { Article, ArticleKeyword, RSSChannel } from '../models/types';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import {
+  ApiService,
+  ArticleFilterParams,
+  ChannelCategoryFilter,
+  ChannelCategoryGroup
+} from '../services/api.service';
+import { Article, ArticleKeyword } from '../models/types';
 
 type SortOrder = 'newest' | 'oldest';
 type PeriodFilter = 'all' | 'lastMonth' | 'lastYear' | 'previousYear';
+
+interface ArticleCategory {
+  id?: number;
+  articleId?: number;
+  name: string;
+  normalizedName?: string;
+}
+
+interface SelectedTopicCategory {
+  channelId: number;
+  categoryName: string;
+}
 
 @Component({
   selector: 'app-archive',
@@ -11,9 +28,14 @@ type PeriodFilter = 'all' | 'lastMonth' | 'lastYear' | 'previousYear';
   styleUrls: ['./archive.component.css'],
   standalone: false
 })
-export class ArchiveComponent implements OnInit {
+export class ArchiveComponent implements OnInit, OnDestroy {
   articles: Article[] = [];
-  userSubscriptions: RSSChannel[] = [];
+
+  channelCategoryTree: ChannelCategoryGroup[] = [];
+  isTopicFilterOpen = false;
+  selectedTopicChannelIds: number[] = [];
+  selectedTopicCategories: SelectedTopicCategory[] = [];
+  expandedTopicChannelIds: number[] = [];
 
   isLoading = false;
   isLoadingMore = false;
@@ -24,26 +46,15 @@ export class ArchiveComponent implements OnInit {
   hasMoreArticles = true;
 
   searchQuery = '';
-  selectedChannelIds: number[] = [];
-  isChannelFilterOpen = false;
   sortOrder: SortOrder = 'newest';
   periodFilter: PeriodFilter = 'all';
 
   private searchDebounceId?: ReturnType<typeof setTimeout>;
 
-  @HostListener('document:click', ['$event'])
-  closeChannelFilterOnOutsideClick(event: MouseEvent) {
-    const target = event.target as HTMLElement;
-
-    if (!target.closest('.channel-multiselect')) {
-      this.isChannelFilterOpen = false;
-    }
-  }
-
   constructor(private apiService: ApiService) {}
 
   ngOnInit() {
-    this.loadUserSubscriptions();
+    this.loadChannelCategoryTree();
     this.loadArticles(true);
   }
 
@@ -53,14 +64,37 @@ export class ArchiveComponent implements OnInit {
     }
   }
 
-  loadUserSubscriptions() {
-    this.apiService.getUserSubscriptions().subscribe({
-      next: (subscriptions) => {
-        this.userSubscriptions = subscriptions || [];
+  @HostListener('document:click', ['$event'])
+  closeFiltersOnOutsideClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+
+    if (!target.closest('.topic-tree-filter')) {
+      this.isTopicFilterOpen = false;
+    }
+  }
+
+  loadChannelCategoryTree() {
+    this.apiService.getChannelCategoryTree().subscribe({
+      next: (tree) => {
+        this.channelCategoryTree = (tree || [])
+          .map(group => ({
+            channelId: group.channelId,
+            channelName: group.channelName,
+            categories: (group.categories || [])
+              .filter(category => !!category.name?.trim())
+              .map(category => ({
+                name: category.name,
+                normalizedName: this.normalizeCategoryName(
+                  category.normalizedName || category.name
+                )
+              }))
+              .sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+          }))
+          .sort((a, b) => a.channelName.localeCompare(b.channelName, 'ru'));
       },
       error: (error) => {
-        console.error('Ошибка загрузки подписок:', error);
-        this.userSubscriptions = [];
+        console.error('Ошибка загрузки дерева каналов и категорий:', error);
+        this.channelCategoryTree = [];
       }
     });
   }
@@ -118,56 +152,122 @@ export class ArchiveComponent implements OnInit {
     });
   }
 
-  getChannels(): RSSChannel[] {
-    return [...this.userSubscriptions]
-      .filter(channel => channel.id !== undefined && channel.id !== null)
-      .sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+  getChannelCategoryTree(): ChannelCategoryGroup[] {
+    return [...this.channelCategoryTree]
+      .sort((a, b) => a.channelName.localeCompare(b.channelName, 'ru'));
   }
 
-  toggleChannelFilter(channelId: number | undefined) {
-    if (!channelId) {
+  toggleTopicFilter() {
+    this.isTopicFilterOpen = !this.isTopicFilterOpen;
+  }
+
+  toggleTopicChannel(channelId: number) {
+    if (this.isTopicChannelSelected(channelId)) {
+      this.selectedTopicChannelIds = this.selectedTopicChannelIds
+        .filter(id => id !== channelId);
+
+      this.selectedTopicCategories = this.selectedTopicCategories
+        .filter(item => item.channelId !== channelId);
+    } else {
+      this.selectedTopicChannelIds = [...this.selectedTopicChannelIds, channelId];
+
+      if (!this.isTopicChannelExpanded(channelId)) {
+        this.expandedTopicChannelIds = [...this.expandedTopicChannelIds, channelId];
+      }
+    }
+
+    this.applyFilters();
+  }
+
+  isTopicChannelSelected(channelId: number): boolean {
+    return this.selectedTopicChannelIds.includes(channelId);
+  }
+
+  toggleTopicChannelExpanded(channelId: number, event: Event) {
+    event.stopPropagation();
+
+    if (this.isTopicChannelExpanded(channelId)) {
+      this.expandedTopicChannelIds = this.expandedTopicChannelIds
+        .filter(id => id !== channelId);
+    } else {
+      this.expandedTopicChannelIds = [...this.expandedTopicChannelIds, channelId];
+    }
+  }
+
+  isTopicChannelExpanded(channelId: number): boolean {
+    return this.expandedTopicChannelIds.includes(channelId);
+  }
+
+  toggleTopicCategory(channelId: number, categoryName: string) {
+    if (!this.isTopicChannelSelected(channelId)) {
       return;
     }
 
-    if (this.selectedChannelIds.includes(channelId)) {
-      this.selectedChannelIds = this.selectedChannelIds.filter(id => id !== channelId);
+    const normalizedCategoryName = this.normalizeCategoryName(categoryName);
+
+    const exists = this.selectedTopicCategories.some(item =>
+      item.channelId === channelId &&
+      item.categoryName === normalizedCategoryName
+    );
+
+    if (exists) {
+      this.selectedTopicCategories = this.selectedTopicCategories.filter(item =>
+        !(item.channelId === channelId && item.categoryName === normalizedCategoryName)
+      );
     } else {
-      this.selectedChannelIds = [...this.selectedChannelIds, channelId];
+      this.selectedTopicCategories = [
+        ...this.selectedTopicCategories,
+        { channelId, categoryName: normalizedCategoryName }
+      ];
     }
 
     this.applyFilters();
   }
 
-  isChannelSelected(channelId: number | undefined): boolean {
-    if (!channelId) {
-      return false;
-    }
+  isTopicCategorySelected(channelId: number, categoryName: string): boolean {
+    const normalizedCategoryName = this.normalizeCategoryName(categoryName);
 
-    return this.selectedChannelIds.includes(channelId);
+    return this.selectedTopicCategories.some(item =>
+      item.channelId === channelId &&
+      item.categoryName === normalizedCategoryName
+    );
   }
 
-  clearChannelFilter() {
-    this.selectedChannelIds = [];
+  getTopicFilterLabel(): string {
+    if (this.selectedTopicChannelIds.length === 0) {
+      return 'Все каналы и категории';
+    }
+
+    const selectedCategoriesCount = this.selectedTopicCategories.length;
+
+    if (this.selectedTopicChannelIds.length === 1 && selectedCategoriesCount === 0) {
+      const channel = this.channelCategoryTree.find(c =>
+        c.channelId === this.selectedTopicChannelIds[0]
+      );
+
+      return channel?.channelName || '1 канал';
+    }
+
+    if (selectedCategoriesCount > 0) {
+      return `Каналы: ${this.selectedTopicChannelIds.length}, категории: ${selectedCategoriesCount}`;
+    }
+
+    return `Каналы: ${this.selectedTopicChannelIds.length}`;
+  }
+
+  clearTopicFilter() {
+    this.selectedTopicChannelIds = [];
+    this.selectedTopicCategories = [];
+    this.expandedTopicChannelIds = [];
+    this.isTopicFilterOpen = false;
+
     this.applyFilters();
-  }
-
-  getChannelFilterLabel(): string {
-    if (this.selectedChannelIds.length === 0) {
-      return 'Все каналы';
-    }
-
-    if (this.selectedChannelIds.length === 1) {
-      const channel = this.userSubscriptions.find(c => c.id === this.selectedChannelIds[0]);
-      return channel?.name || '1 канал';
-    }
-
-    return `Выбрано: ${this.selectedChannelIds.length}`;
   }
 
   getCurrentFilters(): ArticleFilterParams {
     return {
       search: this.searchQuery,
-      channelIds: this.selectedChannelIds,
+      channelCategoryFilters: this.buildChannelCategoryFilters(),
       sortOrder: this.sortOrder,
       periodFilter: this.periodFilter
     };
@@ -194,7 +294,7 @@ export class ArchiveComponent implements OnInit {
   hasActiveFilters(): boolean {
     return (
       this.searchQuery.trim().length > 0 ||
-      this.selectedChannelIds.length > 0 ||
+      this.selectedTopicChannelIds.length > 0 ||
       this.sortOrder !== 'newest' ||
       this.periodFilter !== 'all'
     );
@@ -202,8 +302,10 @@ export class ArchiveComponent implements OnInit {
 
   clearFilters() {
     this.searchQuery = '';
-    this.selectedChannelIds = [];
-    this.isChannelFilterOpen = false;
+    this.selectedTopicChannelIds = [];
+    this.selectedTopicCategories = [];
+    this.expandedTopicChannelIds = [];
+    this.isTopicFilterOpen = false;
     this.sortOrder = 'newest';
     this.periodFilter = 'all';
 
@@ -281,20 +383,46 @@ export class ArchiveComponent implements OnInit {
       .filter(keyword => !!keyword.text?.trim())
       .sort((a, b) => this.getKeywordSourceOrder(a.source) - this.getKeywordSourceOrder(b.source));
   }
-  
+
+  getArticleCategories(article: Article): ArticleCategory[] {
+    const typedArticle = article as Article & { categories?: ArticleCategory[] };
+
+    return (typedArticle.categories || [])
+      .filter(category => !!category.name?.trim());
+  }
+
   getKeywordSourceLabel(source: string | undefined): string {
     if (source === 'Title') return 'Название';
     if (source === 'Description') return 'Описание';
     if (source === 'AI') return 'AI';
-  
+
     return source || 'Ключ';
   }
-  
+
   private getKeywordSourceOrder(source: string | undefined): number {
     if (source === 'AI') return 1;
     if (source === 'Title') return 2;
     if (source === 'Description') return 3;
-  
+
     return 4;
+  }
+
+  private buildChannelCategoryFilters(): ChannelCategoryFilter[] {
+    return this.selectedTopicChannelIds.map(channelId => {
+      const categoryNames = this.selectedTopicCategories
+        .filter(item => item.channelId === channelId)
+        .map(item => item.categoryName);
+
+      return {
+        channelId,
+        categoryNames
+      };
+    });
+  }
+
+  private normalizeCategoryName(value: string | null | undefined): string {
+    return (value || '')
+      .trim()
+      .toLocaleLowerCase('ru-RU');
   }
 }
